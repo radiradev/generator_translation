@@ -1,7 +1,7 @@
 # Generator Reweighting of DUNE event samples
 This library aims to apply ML techniques for event reweighting
 
-**So, here’s a simple pytorch template that help you get into your main project faster and just focus on your core (Model Architecture, Training Flow, etc)**
+<!-- **So, here’s a simple pytorch template that help you get into your main project faster and just focus on your core (Model Architecture, Training Flow, etc)** -->
 
 
 # Acknowledgments
@@ -19,8 +19,8 @@ This work is based on work by Cristovao Vilela - [GeneratorReweight](https://git
 -  [Acknowledgments](#acknowledgments)
 
 # In a Nutshell   
-In a nutshell here's how to use this template, so **for example** assume you want to implement ResNet-18 to train mnist, so you should do the following:
-- In `modeling`  folder create a python file named whatever you like, here we named it `example_model.py` . In `modeling/__init__.py` file, you can build a function named `build_model` to call your model
+<!-- In a nutshell here's how to use this template, so **for example** assume you want to implement ResNet-18 to train mnist, so you should do the following:
+- In `modeling`  folder create a python file named whatever you like, here we named it `example_model.py` . In `modeling/__init__.py` file, you can build a function named `build_model` to call your model -->
 
 <!-- ```python
 from .example_model import ResNet18
