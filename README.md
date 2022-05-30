@@ -10,6 +10,7 @@ This work is based on work by Cristovao Vilela - [GeneratorReweight](https://git
 # Requirements
 - [awkard-array](https://github.com/scikit-hep/awkward) (Manipulating nested, variable-sized data using NumPy idioms)
 - [PyTorch](https://pytorch.org/) (An open source deep learning platform) 
+- [uproot](https://uproot.readthedocs.io/en/latest/) (Reading ROOT files in Python)
 
 # Table Of Contents
 -  [In a Nutshell](#in-a-nutshell)
@@ -19,8 +20,8 @@ This work is based on work by Cristovao Vilela - [GeneratorReweight](https://git
 -  [Acknowledgments](#acknowledgments)
 
 # In a Nutshell   
-<!-- In a nutshell here's how to use this template, so **for example** assume you want to implement ResNet-18 to train mnist, so you should do the following:
-- In `modeling`  folder create a python file named whatever you like, here we named it `example_model.py` . In `modeling/__init__.py` file, you can build a function named `build_model` to call your model -->
+We are exploring the use of optimal transport techniques combined with a generative model to **reweigth** event samples. 
+- The optimal transport follows the implementation of [Input Convex Neural Newtorks](https://github.com/cspollard/picnn) with the corresponding article of [Transport away your problems](https://www.sciencedirect.com/science/article/pii/S0168900221010020?via%3Dihub). 
 
 <!-- ```python
 from .example_model import ResNet18
