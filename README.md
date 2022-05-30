@@ -84,8 +84,9 @@ do_train(cfg, model, train_loader, val_loader, optimizer, None, F.cross_entropy)
 ├──  src
 │    └── data_preparation.py - takes root files and converts them into an h5py file
 │
-
-<!-- ├──  data  
+```
+<!-- 
+├──  data  
 │    └── datasets  - here's the datasets folder that is responsible for all data handling.
 │    └── transforms  - here's the data preprocess folder that is responsible for all data augmentation.
 │    └── build.py  		   - here's the file to make dataloader.
