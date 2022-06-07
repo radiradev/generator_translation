@@ -1,0 +1,14 @@
+prefix: /afs/cern.ch/work/r/rradev/public/envs/generator_translation
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch=1.11.0
+  - cudatoolkit=11.3
+  - uproot
+  - awkward
+  - h5py
+

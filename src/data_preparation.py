@@ -91,6 +91,7 @@ def nuisflatToH5(fNameNuis, fNameh5, trainFraction) :
                 
                 if i == 0 :
                     # Create hdf5 dataset
+                    ak.to_parquet(data[:split], 'train_data.parquet')
                     print('creating data')
                     hf.create_dataset("train_data", data = data[:split],maxshape = (None, len(varOut)), chunks = True)
                     hf.create_dataset("test_data", data = data[split:], maxshape = (None, len(varOut)), chunks = True)
