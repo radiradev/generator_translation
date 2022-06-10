@@ -34,8 +34,7 @@ def nuisflatToH5(fNameNuis, df_name, trainFraction) :
         os.remove(df_name)
     fileList = glob.glob(fNameNuis)
     random.shuffle(fileList)
-        
-        
+    
     for i, fName in enumerate(fileList) :
         with uproot4.open(fName+":FlatTree_VARS") as tree :
             print("Reading {0}".format(fName))
@@ -91,12 +90,20 @@ def nuisflatToH5(fNameNuis, df_name, trainFraction) :
             train_df = pd.DataFrame(data[:split], columns=varOut)
             train_df.to_csv(f'{df_name}_train_{i}.csv')
 
-            test_df = pd.DataFrame(data[split:], columns=varOut)
-            test_df.to_csv(f'{df_name}_train_{i}.csv')
+            # Split also in validation and test
+            val_test = split[split:]
+            val_test_idx = int(len(val_test)/2.0)
+            val, test = val_test[val_test_idx:], val_test[:val_test_idx]
+
+            test_df = pd.DataFrame(test, columns=varOut)
+            test_df.to_csv(f'{df_name}_test_{i}.csv')
+
+            val_df = pd.DataFrame(val, columns=varOut)
+            val_df.to_csv(f'{df_name}_val_{i}.csv')
 
 def main() :
     for sample, fName in samples.items() :
-        nuisflatToH5(fName, output_directory+"/"+sample, 0.9)
+        nuisflatToH5(fName, output_directory+"/"+sample, 0.8)
 
 nuisReadVars = ["cc",
                 "PDGnu",
