@@ -1,5 +1,6 @@
-models/turbo-sim-supplementary/
 notebooks/
 lightning_logs/
 .ipynb_checkpoints/
 *.ipynb
+*.keytab
+models/__pychache__/

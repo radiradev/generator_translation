@@ -1,28 +1,32 @@
-from data.dataset import NuDataset
+from data.dataset import NuDataset, build_datapipes
 from models.reweighter import Reweighter
 from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
+import argparse
 
-#Load data
-HOME_DIR = '/eos/home-r/rradev/generator_reweigthing/'
-GENIE_DIR = 'argon_GENIEv2.h5'
-NEUT_DIR = 'argon_NEUT.h5'
-BATCH_SIZE = 512
-NUM_WORKERS = 4
 
-data_dirs = [HOME_DIR + GENIE_DIR, HOME_DIR + NEUT_DIR]
-train_ds = NuDataset(data_dirs, test=False)
-train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=True)
+# Parse arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--batch-size", type=int, default=512)
+parser.add_argument("--n-epochs", type=int, default=5)
+parser.add_argument("--n-workers", type=int, default=4)
+parser.add_argument("--root_dir", type=str, default='/eos/home-r/rradev/generator_reweigthing/')
+parser.add_argument("--mode", type=str, default='train')
+args = parser.parse_args()
+
+# Load Data
+datapipe = build_datapipes(args.root_dir, args.mode)
+train_loader = DataLoader(datapipe, batch_size=args.batch_size, num_workers=args.n_workers, shuffle=True)
 
 # Init our model
-mnist_model = Reweighter()
+model = Reweighter()
 
 # Initialize a trainer
 trainer = Trainer(
     gpus=1,
-    max_epochs=3,
+    max_epochs=args.n_epochs,
     progress_bar_refresh_rate=20,
 )
 
 # Train the model ⚡
-trainer.fit(mnist_model, train_loader)
+trainer.fit(model, train_loader)
