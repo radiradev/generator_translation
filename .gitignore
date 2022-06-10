@@ -3,4 +3,5 @@ lightning_logs/
 .ipynb_checkpoints/
 *.ipynb
 *.keytab
+*.pyc
 models/__pychache__/
