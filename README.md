@@ -21,8 +21,7 @@ This work is based on work by Cristovao Vilela - [GeneratorReweight](https://git
 -  [Acknowledgments](#acknowledgments)
 
 # In a Nutshell   
-We are exploring the use of optimal transport techniques combined with a generative model to **reweigth** event samples. 
-- The optimal transport follows the implementation of [Input Convex Neural Newtorks](https://github.com/cspollard/picnn) with the corresponding article of [Transport away your problems](https://www.sciencedirect.com/science/article/pii/S0168900221010020?via%3Dihub). 
+Reweighting distributions using neural networks. More info on the methodology in this [presentation](https://indico.fnal.gov/event/47708/contributions/208129/attachments/139833/175623/cv_generatorrw_20210208.pdf)
 
 <!-- ```python
 from .example_model import ResNet18
