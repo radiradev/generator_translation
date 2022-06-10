@@ -34,6 +34,7 @@ def nuisflatToH5(fNameNuis, df_name, trainFraction) :
         os.remove(df_name)
     fileList = glob.glob(fNameNuis)
     random.shuffle(fileList)
+    length = len(fileList)
     
     for i, fName in enumerate(fileList) :
         with uproot4.open(fName+":FlatTree_VARS") as tree :
@@ -91,7 +92,7 @@ def nuisflatToH5(fNameNuis, df_name, trainFraction) :
             train_df.to_csv(f'{df_name}_train_{i}.csv')
 
             # Split also in validation and test
-            val_test = split[split:]
+            val_test = data[split:]
             val_test_idx = int(len(val_test)/2.0)
             val, test = val_test[val_test_idx:], val_test[:val_test_idx]
 
@@ -100,6 +101,9 @@ def nuisflatToH5(fNameNuis, df_name, trainFraction) :
 
             val_df = pd.DataFrame(val, columns=varOut)
             val_df.to_csv(f'{df_name}_val_{i}.csv')
+            
+            percentage = (100.0*i)/length
+            print(f'{percentage}% completed in {df_name}')
 
 def main() :
     for sample, fName in samples.items() :

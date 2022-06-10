@@ -4,7 +4,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 import argparse
 
-
 # Parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--batch-size", type=int, default=512)
@@ -15,11 +14,14 @@ parser.add_argument("--mode", type=str, default='train')
 args = parser.parse_args()
 
 # Load Data
-datapipe = build_datapipes(args.root_dir, args.mode)
-train_loader = DataLoader(datapipe, batch_size=args.batch_size, num_workers=args.n_workers, shuffle=True)
+train_datapipe = build_datapipes(args.root_dir, mode='train')
+val_datapipe = build_datapipes(args.root_dir, mode='val')
+
+train_loader = DataLoader(train_datapipe, batch_size=args.batch_size, num_workers=args.n_workers, shuffle=True)
+val_loader = DataLoader(val_datapipe, batch_size=args.batch_size, num_workers=args.n_workers, shuffle=True)
 
 # Init our model
-model = Reweighter()
+model = Reweighter(hparams=args)
 
 # Initialize a trainer
 trainer = Trainer(
