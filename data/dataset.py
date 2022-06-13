@@ -15,17 +15,20 @@ def string_mapper(string, substring="GENIE"):
         return 0
 
 
-def feature_mapper(feature):
-    if type(feature) == str:
-        return 0
-    else:
-        return feature
+def features_preprocess(features):
+    features = features[1:] # remove index from csv
+    # nan values fix
+    W = features[9]
+    if W == '':
+        features[9] = np.random.random() * 10
+        return features
+    return features
+
 
 def row_processor(row):
     label, features = row
     label = string_mapper(label)
-    features = [feature_mapper(x) for x in features] # bug in csv files
-    features = features[1:]  # remove index from csv
+    features = features_preprocess(features)
     return {
         "label": np.array(label, np.int32),
         "features": np.array(features, np.float32),
