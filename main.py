@@ -8,7 +8,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--batch-size", type=int, default=512)
 parser.add_argument("--n-epochs", type=int, default=5)
-parser.add_argument("--n-workers", type=int, default=4)
+parser.add_argument("--n-workers", type=int, default=3)
 parser.add_argument("--root_dir", type=str, default='/eos/home-r/rradev/generator_reweigthing/')
 args = parser.parse_args()
 
@@ -27,6 +27,7 @@ trainer = Trainer(
     gpus=1,
     max_epochs=args.n_epochs,
     progress_bar_refresh_rate=20,
+    # default_root_dir=args.root_dir,
 )
 
 # Train the model ⚡
