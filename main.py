@@ -10,7 +10,6 @@ parser.add_argument("--batch-size", type=int, default=512)
 parser.add_argument("--n-epochs", type=int, default=5)
 parser.add_argument("--n-workers", type=int, default=4)
 parser.add_argument("--root_dir", type=str, default='/eos/home-r/rradev/generator_reweigthing/')
-parser.add_argument("--mode", type=str, default='train')
 args = parser.parse_args()
 
 # Load Data
@@ -31,4 +30,4 @@ trainer = Trainer(
 )
 
 # Train the model ⚡
-trainer.fit(model, train_loader)
+trainer.fit(model, train_loader, val_loader)

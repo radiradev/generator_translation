@@ -27,7 +27,7 @@ class Reweighter(pl.LightningModule):
         loss = F.binary_cross_entropy_with_logits(predictions, labels)
         self.log('training_loss', loss)
         # Compute accuracy
-        self.train_accuracy(predictions, labels)
+        self.train_accuracy(predictions, torch.tensor(labels, dtype=torch.int32))
         self.log('train_acc', self.train_accuracy)
         
         return loss
@@ -39,7 +39,7 @@ class Reweighter(pl.LightningModule):
         loss = F.binary_cross_entropy_with_logits(predictions, labels)
         self.log('training_loss', loss)
         # Compute accuracy
-        self.train_accuracy(predictions, labels)
+        self.train_accuracy(predictions, torch.tensor(labels, dtype=torch.int32))
         self.log('train_acc', self.train_accuracy)
         return loss
     

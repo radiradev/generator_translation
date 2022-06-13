@@ -1,4 +1,5 @@
 notebooks/
+__pycache__/
 lightning_logs/
 .ipynb_checkpoints/
 *.ipynb

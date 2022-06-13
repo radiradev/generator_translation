@@ -8,35 +8,8 @@ import torch
 import torchdata.datapipes as dp
 
 
-def string_mapper(string, substring="GENIE"):
-    if substring in string:
-        return 1
-    else:
-        return 0
-
-
-def features_preprocess(features):
-    features = features[1:] # remove index from csv
-    # nan values fix
-    W = features[9]
-    if W == '':
-        features[9] = np.random.random() * 10
-        return features
-    return features
-
-
-def row_processor(row):
-    label, features = row
-    label = string_mapper(label)
-    features = features_preprocess(features)
-    return {
-        "label": np.array(label, np.int32),
-        "features": np.array(features, np.float32),
-    }
-
-
-def build_datapipes(root_dir=".", mode='train'):
-    mask = f'*{mode}*.csv'
+def build_datapipes(root_dir=".", mode="train"):
+    mask = f"*{mode}*.csv"
     datapipe = dp.iter.FileLister(root_dir, masks=mask)
     datapipe = dp.iter.FileOpener(datapipe, mode="rt")
     # Shuffle filenames
@@ -52,6 +25,31 @@ def build_datapipes(root_dir=".", mode='train'):
     return datapipe
 
 
+def row_processor(row):
+    label, features = row
+    label = string_mapper(label)
+    features = features_preprocess(features)
+    return {
+        "label": np.array(label, np.int32),
+        "features": np.array(features, np.float32),
+    }
+
+
+def string_mapper(string, substring="GENIE"):
+    if substring in string:
+        return 1
+    else:
+        return 0
+
+
+def features_preprocess(features):
+    features = features[1:]  # remove index from csv
+    # nan values fix
+    W = features[9]
+    if W == "":
+        features[9] = np.random.random() * 10
+        return features
+    return features
 
 
 class NuDataset(Dataset):
