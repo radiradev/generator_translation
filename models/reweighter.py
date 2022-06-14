@@ -10,8 +10,9 @@ class Reweighter(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters(hparams)
         self.net = CrisModel()
-        self.val_accucary = torchmetrics.Accuracy()
+        self.val_accuracy = torchmetrics.Accuracy()
         self.train_accuracy = torchmetrics.Accuracy()
+        self.test_accuracy = torchmetrics.Accuracy()
     
     def forward(self, x):
         return self.net(x)
@@ -37,10 +38,21 @@ class Reweighter(pl.LightningModule):
         labels = self.format_labels(batch['label'])
         # Compute Loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels)
-        self.log('training_loss', loss)
+        self.log('validation_loss', loss)
         # Compute accuracy
-        self.train_accuracy(predictions, torch.tensor(labels, dtype=torch.int32))
-        self.log('train_acc', self.train_accuracy)
+        self.val_accracy(predictions, torch.tensor(labels, dtype=torch.int32))
+        self.log('validation_acc', self.val_accuracy)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        predictions = self.forward(batch['features'])
+        labels = self.format_labels(batch['label'])
+        # Compute Loss
+        loss = F.binary_cross_entropy_with_logits(predictions, labels)
+        self.log('test_loss', loss)
+        # Compute accuracy
+        self.test_accuracy(predictions, torch.tensor(labels, dtype=torch.int32))
+        self.log('test_accuracy', self.test_accuracy, prog_bar=True)
         return loss
     
     def configure_optimizers(self):

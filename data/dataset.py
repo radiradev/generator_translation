@@ -8,7 +8,7 @@ import torch
 import torchdata.datapipes as dp
 
 
-def build_datapipes(root_dir=".", mode="train"):
+def build_datapipes(root_dir=".", mode="train", buffer_size=10e5):
     mask = f"*{mode}*.csv"
     datapipe = dp.iter.FileLister(root_dir, masks=mask)
     datapipe = dp.iter.FileOpener(datapipe, mode="rt")
@@ -19,7 +19,7 @@ def build_datapipes(root_dir=".", mode="train"):
     datapipe = datapipe.parse_csv(delimiter=",", skip_lines=1, return_path=True)
 
     # if buffer size is bigger than the lenght of the shard it shuffles across shards
-    datapipe = datapipe.shuffle(buffer_size=10e5)
+    datapipe = datapipe.shuffle(buffer_size=buffer_size)
 
     datapipe = datapipe.map(row_processor)
     return datapipe

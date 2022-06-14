@@ -6,3 +6,4 @@ lightning_logs/
 *.keytab
 *.pyc
 models/__pychache__/
+reweighted_samples/
