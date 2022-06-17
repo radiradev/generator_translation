@@ -90,6 +90,7 @@ def nuisflatToH5(fNameNuis, df_name, trainFraction) :
             
             train_df = pd.DataFrame(data[:split], columns=varOut)
             train_df.to_csv(f'{df_name}_train_{i}.csv')
+            np.save('data.npy', data)
 
             # Split also in validation and test
             val_test = data[split:]
@@ -104,6 +105,7 @@ def nuisflatToH5(fNameNuis, df_name, trainFraction) :
             
             percentage = (100.0*i)/length
             print(f'{percentage}% completed in {df_name}')
+            break
 
 def main() :
     for sample, fName in samples.items() :
