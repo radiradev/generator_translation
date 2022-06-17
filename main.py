@@ -9,12 +9,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--batch-size", type=int, default=512)
 parser.add_argument("--n-epochs", type=int, default=5)
 parser.add_argument("--n-workers", type=int, default=3)
-parser.add_argument("--root_dir", type=str, default='/eos/home-r/rradev/generator_reweigthing/')
+parser.add_argument("--root_dir", type=str, default='/eos/home-r/rradev/generator_reweigthing/from_h5/')
+parser.add_argument('--lr', type=int, default=1e-5)
 args = parser.parse_args()
 
 # Load Data
-train_datapipe = build_datapipes(args.root_dir, mode='train')
-val_datapipe = build_datapipes(args.root_dir, mode='val')
+train_datapipe = build_datapipes(args.root_dir, mode='train_data')
+val_datapipe = build_datapipes(args.root_dir, mode='test_data')
 
 train_loader = DataLoader(train_datapipe, batch_size=args.batch_size, num_workers=args.n_workers, shuffle=True)
 val_loader = DataLoader(val_datapipe, batch_size=args.batch_size, num_workers=args.n_workers, shuffle=True)
@@ -26,8 +27,9 @@ model = Reweighter(hparams=args)
 trainer = Trainer(
     gpus=1,
     max_epochs=args.n_epochs,
-    progress_bar_refresh_rate=20,
     # default_root_dir=args.root_dir,
+    progress_bar_refresh_rate=100,
+    log_every_n_steps=500,
 )
 
 # Train the model ⚡

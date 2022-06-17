@@ -1,6 +1,8 @@
 import pandas as pd
 import h5py 
 
+#Uses data_create_old.py to create h5py files first ---> quickfix solution 
+
 DIR = '/eos/user/r/rradev/generator_reweigthing/'
 GENIE_NAME = 'argon_GENIEv2.h5'
 NEUT_NAME = 'argon_NEUT.h5'
