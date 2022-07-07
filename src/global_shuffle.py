@@ -5,11 +5,10 @@ import glob
 import ray
 
 
-root_dir = '/mnt/rradev/parquet_data/'
+root_dir = '/eos/user/r/rradev/generator_reweigthing'
 print('reading paths')
-paths = [
-    root_dir + 'GENIEv2_train.parquet',
-    root_dir + 'NEUT_train.parquet']
+
+paths = glob.glob(root_dir + '/*.parquet')
 ray_df = ray.data.read_parquet(paths)
 ray_df = ray_df.repartition(num_blocks=100, shuffle=True)
 

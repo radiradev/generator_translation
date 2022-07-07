@@ -27,6 +27,13 @@ samples["argon_GENIEv2"] = sampledir+"flat_argon_*_GENIEv2*.root"
 samples["argon_NEUT"] = sampledir+"flat_argon_*_NEUT*.root"
 #samples["argon_NUWRO"] = sampledir+"flat_argon_*_NUWRO.root"
 
+def map_names(filename):
+    if 'GENIE' in filename:
+        return 0
+    else:
+        return 1
+def drop_low_ELeps(dataf):
+    return dataf.drop(dataf[dataf['ELep'] < 0].index)
 
 def nuisflatToH5(fNameNuis, df_name, trainFraction) :
 
@@ -87,10 +94,12 @@ def nuisflatToH5(fNameNuis, df_name, trainFraction) :
             
             
             split = int(trainFraction*len(data))
-            
+            generator_name = map_names(df_name)
+
             train_df = pd.DataFrame(data[:split], columns=varOut)
-            train_df.to_csv(f'{df_name}_train_{i}.csv')
-            np.save('data.npy', data)
+            train_df['generator'] = generator_name
+            train_df = drop_low_ELeps(train_df)
+            train_df.to_parquet(f'{df_name}_train_{i}.parquet')
 
             # Split also in validation and test
             val_test = data[split:]
@@ -98,14 +107,15 @@ def nuisflatToH5(fNameNuis, df_name, trainFraction) :
             val, test = val_test[val_test_idx:], val_test[:val_test_idx]
 
             test_df = pd.DataFrame(test, columns=varOut)
-            test_df.to_csv(f'{df_name}_test_{i}.csv')
+            test_df['generator'] = generator_name
+            test_df.to_parquet(f'{df_name}_test_{i}.parquet')
 
             val_df = pd.DataFrame(val, columns=varOut)
-            val_df.to_csv(f'{df_name}_val_{i}.csv')
+            val_df['generator'] = generator_name
+            val_df.to_parquet(f'{df_name}_val_{i}.parquet')
             
             percentage = (100.0*i)/length
             print(f'{percentage}% completed in {df_name}')
-            break
 
 def main() :
     for sample, fName in samples.items() :
