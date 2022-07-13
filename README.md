@@ -12,6 +12,7 @@ This work is based on work by Cristovao Vilela - [GeneratorReweight](https://git
 - [PyTorch](https://pytorch.org/) (An open source deep learning platform) 
 - [uproot](https://uproot.readthedocs.io/en/latest/) (Reading ROOT files in Python)
 - [pytorch-lgihtning](https://www.pytorchlightning.ai/)(pytorch wrapper)
+- [\LaTeX](https://pypi.org/project/latex/)(LaTeX support for plotting utils)
 
 # Table Of Contents
 -  [In a Nutshell](#in-a-nutshell)

@@ -1,35 +1,49 @@
-from data.dataset import NuDataset, build_datapipes
+from src.root_dataloader import ROOTDataset
 from models.reweighter import Reweighter
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 import argparse
 import torch
 import numpy as np
 
+def replace_nan_values(array):
+    X = array.copy()
+    nan_index = np.isnan(X)
+    X[nan_index] = np.random.randn(len(X[nan_index]))
+    return X
+
 # Parse arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--batch-size", type=int, default=int(10e3))
-parser.add_argument("--n-epochs", type=int, default=5)
-parser.add_argument("--n-workers", type=int, default=3)
-parser.add_argument("--root_dir", type=str, default='/eos/home-r/rradev/generator_reweigthing/')
-parser.add_argument("--checkpoint_path", type=str, default='/data/rradev/generator_reweight/lightning_logs/version_1/checkpoints/epoch=0-step=1804689.ckpt')
+parser.add_argument("--batch-size", type=int, default=1024)
+parser.add_argument("--n-epochs", type=int, default=10)
+parser.add_argument("--n-workers", type=int, default=2)
+parser.add_argument("--root_dir",
+                    type=str,
+                    default='/eos/home-c/cristova/DUNE/AlternateGenerators/')
+parser.add_argument('--lr', type=int, default=1e-4)
+parser.add_argument("--checkpoint_path", type=str, default='/data/rradev/generator_reweight/lightning_logs/version_12/checkpoints/epoch=7-step=50000.ckpt')
 args = parser.parse_args()
 
 # Load model with weights
 model = Reweighter(hparams=args).load_from_checkpoint(args.checkpoint_path)
+model.eval()
 
+# Load dataset
+dataset = ROOTDataset(args.root_dir, preload_data=False, shuffle=False)
 
-samples = ['GENIEv2_test', 'NEUT_test']
+# Get predictions
+with torch.no_grad():
+    for generator in ['GENIEv2', 'NUWRO']:
+        # Load data
+        batch = replace_nan_values(dataset.load_generator(generator))
 
-for sample in samples:
-    # Load data for the sample
-    test_datapipe = build_datapipes(args.root_dir, mode=sample, buffer_size=10e4)
-    test_loader = DataLoader(test_datapipe, batch_size=args.batch_size, num_workers=args.n_workers, shuffle=True)
+        # Last column is the label
+        features = torch.tensor(batch[:, :-1], dtype=torch.float) #last column is the label
+        print(f'Calculating logits for generator')
+        logits = model(features).detach().cpu().numpy()
+        features = features.detach().cpu().numpy()
 
-    # Predict probabilities
-    batch = next(iter(test_loader))
-    logits = model(batch['features'])
-    probas = torch.sigmoid(logits)
-    
-    torch.save(probas, f'reweighted_samples/{sample}_probas.pt')
-    torch.save(batch['features'], f'reweighted_samples/{sample}_features.pt')
+        # Save files
+        np.save(f'reweighted_samples/{generator}_logits.npy', logits)
+        np.save(f'reweighted_samples/{generator}_features.npy', features)

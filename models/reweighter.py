@@ -9,7 +9,7 @@ from torchmetrics.functional import accuracy
 class Reweighter(pl.LightningModule):
     def __init__(self, hparams):
         super().__init__()
-        self.lr = hparams.lr
+        # self.lr = hparams.lr
         self.save_hyperparameters(hparams)
         self.net = CrisModel()
     
@@ -21,23 +21,30 @@ class Reweighter(pl.LightningModule):
         return torch.tensor(labels, dtype=torch.float)
 
     def training_step(self, batch, batch_idx):
-        predictions = self.forward(batch['features'])
+        predictions = self.forward(torch.tensor(batch['features'], dtype=torch.float))
         labels = self.format_labels(batch['label'])
+
         # Compute Loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels)
         self.log('training_loss', loss)
+
         # Compute accuracy
         acc = accuracy(predictions, torch.tensor(labels, dtype=torch.int32))
         self.log('train_acc', acc)
+
+        n_positive_examples = torch.sum(labels == 1.0)
+        self.log('positive_examples', n_positive_examples)
         
         return loss
     
     def validation_step(self, batch, batch_idx):
         predictions = self.forward(batch['features'])
         labels = self.format_labels(batch['label'])
+
         # Compute Loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels)
         self.log('validation_loss', loss)
+
         # Compute accuracy
         acc = accuracy(predictions, torch.tensor(labels, dtype=torch.int32))
         self.log('validation_acc', acc, prog_bar=True)
@@ -46,13 +53,15 @@ class Reweighter(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         predictions = self.forward(batch['features'])
         labels = self.format_labels(batch['label'])
+
         # Compute Loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels)
         self.log('test_loss', loss)
+        
         # Compute accuracy
         acc = accuracy(predictions, torch.tensor(labels, dtype=torch.int32))
         self.log('test_accuracy', acc, prog_bar=True)
         return loss
     
     def configure_optimizers(self):
-        return Adam(self.parameters(), self.lr)
+        return Adam(self.parameters(), 1e-4)

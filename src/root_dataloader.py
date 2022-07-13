@@ -1,8 +1,6 @@
 import uproot
 import awkward as ak
 import numpy as np
-
-from sklearn.utils import shuffle
 from glob import glob
 from torch.utils.data import Dataset
 
@@ -17,13 +15,21 @@ class ROOTDataset(Dataset):
                  data_dir,
                  generator_a='GENIEv2',
                  generator_b='NUWRO',
-                 shuffle=True):
+                 shuffle=True,
+                 preload_data=True):
         super(ROOTDataset, self).__init__()
         self.data_dir = data_dir
-        self.data = self.load_data(generator_a, generator_b).astype('float64')
+        if preload_data:
+            self.dataset_a = self.load_generator(generator_a)
+            self.dataset_b = self.load_generator(generator_b)
+            self.data = self.load_data(generator_a, generator_b).astype('float32')
+        self.shuffle = shuffle
 
     def __getitem__(self, index):
+
         features, label = self.data[index][:-1], self.data[index][-1]
+        if np.isnan(features[9]):
+            features[9] = np.random.random() * 10
         return {
             'features': features,
             'label': label
@@ -32,11 +38,9 @@ class ROOTDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def load_data(self, generator_a, generator_b):
-        dataset_a = self.load_generator(generator_a)
-        dataset_b = self.load_generator(generator_b)
+    def load_data(self, dataset_a, dataset_b):
         data = np.vstack([dataset_a, dataset_b])
-        if shuffle:
+        if self.shuffle:
             np.random.shuffle(data)
         return data
 
@@ -44,6 +48,14 @@ class ROOTDataset(Dataset):
     def load_generator(self, generator_name):
         wildcard_pattern = self.get_wildcard_pattern(generator_name)
         filenames = glob(self.data_dir + wildcard_pattern)
+
+        
+        # The dataset has to include all pdg types
+        len_pdg_types = 4
+        while len(filenames) != len_pdg_types:
+            wildcard_pattern = self.get_wildcard_pattern(generator_name)
+            filenames = glob(self.data_dir + wildcard_pattern)
+        
         data = self._rootfile_to_array(filenames[0])
 
         for filename in filenames[1:]:

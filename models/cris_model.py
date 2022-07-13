@@ -9,11 +9,10 @@ class CrisModel(torch.nn.Module):
             torch.nn.BatchNorm1d(64),
             torch.nn.Linear(64,64), torch.nn.ReLU(),
             torch.nn.BatchNorm1d(64),
-            # torch.nn.Linear(64,64), torch.nn.ReLU(),
-            # torch.nn.BatchNorm1d(64),
-            # torch.nn.Linear(64,64), torch.nn.ReLU(),
-            # torch.nn.BatchNorm1d(64),
-            # torch.nn.Dropout(0.8),
+            torch.nn.Linear(64,64), torch.nn.ReLU(),
+            torch.nn.BatchNorm1d(64),
+            torch.nn.Linear(64,64), torch.nn.ReLU(),
+            torch.nn.BatchNorm1d(64),
             torch.nn.Linear(64,1)
             )
         
