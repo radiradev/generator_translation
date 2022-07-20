@@ -78,10 +78,10 @@ do_train(cfg, model, train_loader, val_loader, optimizer, None, F.cross_entropy)
 # In Details
 ```
 ├──  notebooks
-│    └── data_exploration.ipynb  - a notebook doing some preliminary exploration of the processed data.
+│    └── reweighting.ipynb  - a notebook showing the reweighting using a trained network
 │
 ├──  src
-│    └── data_preparation.py - takes root files and converts them into an h5py file
+│    └── root_dataloder.py - takes root files and creates a pytoch dateset
 │
 ├──  data  
 │    └── datasets  - here's the datasets folder that is responsible for all data handling.
@@ -91,7 +91,8 @@ do_train(cfg, model, train_loader, val_loader, optimizer, None, F.cross_entropy)
 │   ├── cris_model.py     - this file contains basic nn architecture
 │   └── reweighter.py   - a pytorch lightning wrapper for training loops
 │
-├── main.py             - script that runs training of the project.
+├── main.py             - script that runs training of the project
+├── test.py             - takes a trained checkpoint and saves logits and features from two generators 
 ```
 
 
