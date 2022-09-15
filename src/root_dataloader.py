@@ -2,10 +2,11 @@ import itertools
 import uproot
 import awkward as ak
 import numpy as np
+import random 
+
 from glob import glob
 from torch.utils.data import Dataset
-
-from utils.funcs import get_constants
+from src.utils.funcs import get_constants
 
 
 class NumPyDataset(Dataset):
@@ -17,14 +18,12 @@ class NumPyDataset(Dataset):
                  root_dir,
                  generator_a='GENIEv2',
                  generator_b='NUWRO',
-                 number_of_files=1,
                  shuffle=True):
         super().__init__()
         self.root_dir = root_dir
         self.generator_a = generator_a
         self.generator__b = generator_b
         self.shuffle = shuffle
-        self.number_of_files = number_of_files
         self.dataset_a = self.load_generator(generator_a)
         self.dataset_b = self.load_generator(generator_b)
         self.data = self.load_data(self.dataset_a, self.dataset_b)
@@ -40,23 +39,9 @@ class NumPyDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def draw_index(self, max_index=50):                    
-        return np.random.randint(low=0,high=max_index)
-
-    def stack(self):
-        pass
-
-
     def load_generator(self, generator_name):
-        index = self.draw_index()
-        data = np.load(self.root_dir + generator_name + str(index) + '.npy')
-        if self.number_of_files > 1:
-            for _ in range(self.number_of_files):
-                index += 1 
-                print(f'{generator_name}{index}')
-                new_data = np.load(self.root_dir + generator_name + str(index) + '.npy')
-                data = np.append(data, new_data, axis=0)
-
+        filenames = glob(self.root_dir + generator_name + '*' + '.npy')
+        data = np.load(random.choice(filenames))
         labels = self.create_labels(data, generator_name)
         return np.hstack([data, labels])
 
