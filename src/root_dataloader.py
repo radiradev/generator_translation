@@ -1,11 +1,11 @@
-from email import generator
 import itertools
-from matplotlib.style import library
 import uproot
 import awkward as ak
 import numpy as np
 from glob import glob
 from torch.utils.data import Dataset
+
+from utils.funcs import get_constants
 
 
 class NumPyDataset(Dataset):
@@ -41,10 +41,22 @@ class NumPyDataset(Dataset):
         return len(self.data)
 
     def draw_index(self, max_index=50):                    
-        return str(np.random.randint(low=0,high=max_index))
+        return np.random.randint(low=0,high=max_index)
+
+    def stack(self):
+        pass
+
 
     def load_generator(self, generator_name):
-        data = np.load(self.root_dir + generator_name + self.draw_index() + '.npy')
+        index = self.draw_index()
+        data = np.load(self.root_dir + generator_name + str(index) + '.npy')
+        if self.number_of_files > 1:
+            for _ in range(self.number_of_files):
+                index += 1 
+                print(f'{generator_name}{index}')
+                new_data = np.load(self.root_dir + generator_name + str(index) + '.npy')
+                data = np.append(data, new_data, axis=0)
+
         labels = self.create_labels(data, generator_name)
         return np.hstack([data, labels])
 
@@ -204,7 +216,7 @@ class ROOTDataset(Dataset):
         return filename_pattern
 
     def _rootfile_to_array(self, filename):
-        variables_in, variables_out, m = self._get_constants()
+        variables_in, variables_out, m = get_constants()
 
         with uproot.open(filename + ":FlatTree_VARS") as tree:
             print("Reading {0}".format(filename))
@@ -284,59 +296,3 @@ class ROOTDataset(Dataset):
                 (len(data), len(variables_out)))
 
             return data, np.expand_dims(weights, axis=1)
-
-    def _get_constants(self):
-        variables_in = [
-            "cc",
-            "PDGnu",
-            "Enu_true",
-            "ELep",
-            "CosLep",
-            "Q2",
-            "W",
-            "x",
-            "y",
-            "nfsp",
-            "pdg",
-            "E",
-            "px",
-            "py",
-            "pz",
-            "Weight",
-        ]
-
-        variables_out = [
-            "isNu",
-            "isNue",
-            "isNumu",
-            "isNutau",
-            "cc",
-            "Enu_true",
-            "ELep",
-            "CosLep",
-            "Q2",
-            "W",
-            "x",
-            "y",
-            "nP",
-            "nN",
-            "nipip",
-            "nipim",
-            "nipi0",
-            "niem",
-            "eP",
-            "eN",
-            "ePip",
-            "ePim",
-            "ePi0",
-        ]
-        m = {
-            "P": 0.93827,
-            "N": 0.93957,
-            "piC": 0.13957,
-            "pi0": 0.13498,
-            "kC": 0.49368,
-            "k0": 0.49764,
-        }
-
-        return variables_in, variables_out, m

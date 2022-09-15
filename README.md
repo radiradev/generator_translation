@@ -16,7 +16,7 @@ This work is based on work by Cristovao Vilela - [GeneratorReweight](https://git
 
 # Table Of Contents
 -  [In a Nutshell](#in-a-nutshell)
--  [In Details](#in-details)
+-  [Project Structure](#project-structure)
 -  [Future Work](#future-work)
 -  [Contributing](#contributing)
 -  [Acknowledgments](#acknowledgments)
@@ -75,29 +75,27 @@ do_train(cfg, model, train_loader, val_loader, optimizer, None, F.cross_entropy)
 ``` -->
 
 
-# In Details
-```
-├──  notebooks
-│    └── data_exploration.ipynb  - a notebook doing some preliminary exploration of the processed data.
-│
-├──  src
-│    └── data_preparation.py - takes root files and converts them into an h5py file
-│
-├──  data  
-│    └── datasets  - here's the datasets folder that is responsible for all data handling.
-│
-│
-├──  models
-│   ├── cris_model.py     - this file contains basic nn architecture
-│   └── reweighter.py   - a pytorch lightning wrapper for training loops
-│
-├── main.py             - script that runs training of the project.
-```
+# Project structure
 
 
+```
+├── models
+│   ├── model.py            - pytorch lightning wrapper to train the model.
+│   ├── modules.py          - NN architectures to be used in the model. 
+├── notebooks
+│   ├── reweighting.ipynb   - an analysis notebook of reweighting done with this framework.
+│   └── toy_example.ipynb   - an example how reweighting is done using NNs
+├── src
+│   ├── root_dataloader.py  - pytorch dataloader that loads a ROOT file directly or from a numpy array
+│   ├── to_numpy.py         - converts ROOT file to numpy
+│   └── utils
+│       ├── funcs.py        - various utility functions. 
+│       ├── plotting.py     - utilies for plotting distributions and probability plots.
+├── tests
+│   └── test_gibuu.py       - test loading of the GIBUU data.
+├── train.py                - script that runs training of the project.
+└── reweight.py             - generates a reweighted sample using the trained model.
+```
 # Future Work
-
-# Contributing
-Any kind of enhancement or contribution is welcomed.
 
 

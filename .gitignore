@@ -1,10 +1,11 @@
 notebooks/
-__pycache__/
+*__pycache__/
 lightning_logs/
 .ipynb_checkpoints/
 *.ipynb
 *.keytab
 *.pyc
 *.
-models/__pycachhe__/
+models/__pycache__/
 reweighted_samples/
+boost_hepml/
