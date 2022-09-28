@@ -1,4 +1,4 @@
-from src.root_dataloader import NumPyDataset
+from src.root_dataloader import NumPyDataset, ParticleCloud
 from models.model import LightningModel
 from torch.utils.data import DataLoader, random_split
 from pytorch_lightning import Trainer
@@ -7,20 +7,20 @@ import argparse
 
 # Parse arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--batch-size", type=int, default=8192)
-parser.add_argument("--n-epochs", type=int, default=200)
-parser.add_argument("--n-workers", type=int, default=4)
+parser.add_argument("--batch-size", type=int, default=512)
+parser.add_argument("--n-epochs", type=int, default=2000)
+parser.add_argument("--n-workers", type=int, default=2)
 parser.add_argument("--root_dir",
                     type=str,
-                    default='/eos/user/r/rradev/generator_reweigthing/')
+                    default='/data/rradev/generator_reweight/awkward_data/')
 parser.add_argument('--lr', type=int, default=1e-4)
 parser.add_argument('--generator_a', type=str, default='GENIEv2')
-parser.add_argument('--generator_b', type=str, default='GENIEv3_G18_10b')
+parser.add_argument('--generator_b', type=str, default='GENIEv3')
 parser.add_argument('--reload_dataloader_every_n_epochs', type=int, default=1)
 args = parser.parse_args()
 
 # Load Data
-dataset = NumPyDataset(args.root_dir, generator_b=args.generator_b)
+dataset = ParticleCloud(args.root_dir, generator_b=args.generator_b, shuffle_data=True)
 
 # Split into val and train
 val_dataset_len = int(len(dataset) * 0.2)
@@ -43,7 +43,7 @@ model = LightningModel(hparams=args).float()
 # Create a callback
 checkpoint_callback = ModelCheckpoint(save_top_k=10,
                                       verbose=True,
-                                      monitor='validation_acc',
+                                      monitor='validation_f1_score',
                                       mode='max')
 
 # Initialize a trainer
@@ -54,7 +54,7 @@ trainer = Trainer(
     max_epochs=args.n_epochs,
     progress_bar_refresh_rate=100,
     log_every_n_steps=250,
-    reload_dataloaders_every_n_epochs=args.reload_dataloader_every_n_epochs,
+    # reload_dataloaders_every_n_epochs=args.reload_dataloader_every_n_epochs,
     # max_steps = 100000,
     # default_root_dir=args.root_dir,
 )

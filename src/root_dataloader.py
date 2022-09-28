@@ -3,10 +3,21 @@ import uproot
 import awkward as ak
 import numpy as np
 import random 
-
+import os
 from glob import glob
 from torch.utils.data import Dataset
-from src.utils.funcs import get_constants
+# from src.utils.funcs import get_constants
+
+
+def pad_array(a, maxlen, value=0., dtype='float32', axis=1):
+    x = ak.pad_none(a, maxlen, axis=axis, clip=True)
+    x = x.to_numpy().filled(fill_value=value)
+    return x
+
+def rec2array(rec):
+    fields = rec.dtype.names
+    arr = np.dstack([rec[field] for field in fields])
+    return arr
 
 
 class NumPyDataset(Dataset):
@@ -18,8 +29,10 @@ class NumPyDataset(Dataset):
                  root_dir,
                  generator_a='GENIEv2',
                  generator_b='NUWRO',
-                 shuffle=True):
+                 shuffle=True,
+                 train=True):
         super().__init__()
+        self.train = train
         self.root_dir = root_dir
         self.generator_a = generator_a
         self.generator__b = generator_b
@@ -40,7 +53,11 @@ class NumPyDataset(Dataset):
         return len(self.data)
 
     def load_generator(self, generator_name):
-        filenames = glob(self.root_dir + generator_name + '*' + '.npy')
+        if not self.train:
+            filenames = glob(self.root_dir + generator_name + '*' + '.npy.train*')
+            print(filenames)
+        else:
+            filenames = glob(self.root_dir + generator_name + '*' + '.npy')
         data = np.load(random.choice(filenames))
         labels = self.create_labels(data, generator_name)
         return np.hstack([data, labels])
@@ -58,6 +75,80 @@ class NumPyDataset(Dataset):
             labels = np.ones(len(data))
         return np.expand_dims(labels, axis=1)
 
+
+class ParticleCloud(Dataset):
+    """
+    Dataset containing unorder list of particles with a set of features 
+    in the form of [px, py, pz, E]. It is zero padded to the max set of particles
+    in the dataset. Dataset has shape [N, n_features, max_features]. Where N is the batch_size,
+    max_len is the length after padding and n_features is the number of features.
+
+    """
+    def __init__(
+        self,
+        data_dir,
+        generator_a='GENIEv2',
+        generator_b='GENIEv3',
+        max_len=30, 
+        shuffle_data = True):
+        super().__init__()
+        self.data_dir = data_dir
+        self.generator_a = generator_a
+        self.generator_b = generator_b
+        self.max_len = max_len
+        self.n_features = 4
+        self.shuffle_data = shuffle_data
+        self.data, self.labels = self.load_data()
+    
+
+    def load_generator(self, generator_name):
+        path = os.path.join(self.data_dir, f'*{generator_name}*')
+        directory_name = glob(path)
+        data = ak.from_parquet(directory_name)
+        p4 = ak.zip({
+            'px': data['part_px'],
+            'py': data['part_py'],
+            'pz': data['part_pz'],
+            'energy': data['part_energy']
+        })
+
+        X = pad_array(p4, self.max_len, axis=1) 
+        X = rec2array(X).swapaxes(1, 2)
+
+        labels = self.create_labels(X, generator_name)
+        return X, labels
+
+
+    def __getitem__(self, index):
+        return {
+            'features': self.data[index],
+            'label': self.labels[index],
+        }
+
+    def __len__(self):
+        return len(self.labels)
+
+    def load_data(self):
+        dataset_a, labels_a = self.load_generator(self.generator_a)
+        dataset_b, labels_b = self.load_generator(self.generator_b)
+
+        data = np.vstack([dataset_a, dataset_b])
+        labels = np.hstack([labels_a, labels_b])
+
+        if self.shuffle_data:
+            indices = np.arange(len(labels))
+            np.random.shuffle(indices) # shuffles in place
+            data = data[indices]
+            labels = labels[indices]
+
+        return data, labels
+
+    def create_labels(self, data, filename):
+        if self.generator_a in filename:
+            labels = np.zeros(len(data))
+        else:
+            labels = np.ones(len(data))
+        return labels
 
 class ROOTDataset(Dataset):
     """
@@ -281,3 +372,9 @@ class ROOTDataset(Dataset):
                 (len(data), len(variables_out)))
 
             return data, np.expand_dims(weights, axis=1)
+
+if __name__ == '__main__':
+    ds = ParticleCloud('/data/rradev/generator_reweight/awkward_data')
+    data, label = ds.load_data()
+    print(data.shape)
+    1/0

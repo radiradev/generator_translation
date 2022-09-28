@@ -1,4 +1,3 @@
-from cProfile import label
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -159,16 +158,14 @@ def ratio_plot(bins_ref,
     x_values, y_values, y_errors = ratios(bins_ref, counts_ref, counts)
     axs[1].plot(x_values, np.ones_like(counts_ref), '--')
     if errorbars:
-        axs[1].errorbar(x=x_values,
-                        y=y_values,
-                        yerr=y_errors,
-                        fmt='o',
-                        color=color,
-                        label=label)
-        axs[1].set_ylim(ratio_limit_low, ratio_limit_high)
-    else:
-        axs[1].plot(x_values, y_values, 'o', color=color, label=label)
-        axs[1].set_ylim(ratio_limit_low, ratio_limit_high)
+        axs[1].fill_between(
+            x_values, 
+            y_values - y_errors,
+            y_values + y_errors, 
+            alpha=0.5)
+
+    axs[1].plot(x_values, y_values, 'o', color=color, label=label)
+    axs[1].set_ylim(ratio_limit_low, ratio_limit_high)
     axs[1].set_title('Ratio to Target')
 
 

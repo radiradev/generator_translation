@@ -78,6 +78,36 @@ def rootfile_to_array(filename):
 
             return data, np.expand_dims(weights, axis=1)
 
+def get_vars_meta(manyBins):
+    vars_meta = np.array(
+        [
+            ["isNu", 2, 0, 1, r"$\nu / \bar{\nu}$ flag"],
+            ["isNue", 2, 0, 1, r"$\nu_{e}$ flag"],
+            ["isNumu", 2, 0, 1, r"$\nu_{\mu}$ flag"],
+            ["isNutau", 2, 0, 1, r"$\nu_{\tau}$ flag"],
+            ["cc", 2, 0, 1, "CC flag"],
+            ["Enu_true", manyBins, 0, 10, "Neutrino energy [GeV]"],
+            ["ELep", manyBins, 0, 5, "Lepton energy [GeV]"],
+            ["CosLep", manyBins, -1, 1, r"cos$\theta_{\ell}$"],
+            ["Q2", manyBins, 0, 10, r"Q^2"],
+            ["W", manyBins, 0, 5, r"W [GeV/$c^{2}$]"],
+            ["x", manyBins, 0, 1, "x"],
+            ["y", manyBins, 0, 1, "y"],
+            ["nP", 15, 0, 15, "Number of protons"],
+            ["nN", 15, 0, 15, "Number of neutrons"],
+            ["nipip", 10, 0, 10, r"Number of $\pi^{+}$"],
+            ["nipim", 10, 0, 10, r"Number of $\pi^{-}$"],
+            ["nipi0", 10, 0, 10, r"Number of $\pi^{0}$"],
+            ["niem", 10, 0, 10, r"Number of EM objects"],
+            ["eP", manyBins - 1, 1.0 / manyBins, 5, "Total proton kinetic energy"],
+            ["eN", manyBins - 1, 1.0 / manyBins, 5, "Total neutron kinetic energy"],
+            ["ePip", manyBins - 1, 1.0 / manyBins, 5, r"Total $\pi^{+}$ kinetic energy"],
+            ["ePim", manyBins - 1, 1.0 / manyBins, 5, r"Total $\pi^{-}$ kinetic energy"],
+            ["ePi0", manyBins - 1, 1.0 / manyBins, 5, r"Total $\pi^{0}$ kinetic energy"],
+        ]
+    ).transpose()
+    return vars_meta
+
 def get_constants():
         variables_in = [
             "cc",
@@ -138,9 +168,12 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-def calculate_weights(logits, weight_cap=None):
+def calculate_weights(logits, weight_cap=None, nominal_is_zero=True):
     weights = np.exp(logits)
     probas = sigmoid(logits)
+    if not nominal_is_zero:
+        print('Nominal generator is not with zero label')
+        weights = probas / (1 - probas)
     if weight_cap is not None:
         weights = np.clip(weights, 0, weight_cap)
     return weights, probas
@@ -148,3 +181,12 @@ def calculate_weights(logits, weight_cap=None):
 
 def detach_tensor(tensor):
     return tensor.detach().cpu().numpy()
+
+def replace_nan_values(array):
+    """
+    Replaces nan values within an array
+    """
+    X = array.copy()
+    nan_index = np.isnan(X)
+    X[nan_index] = np.random.randn(len(X[nan_index]))
+    return X
