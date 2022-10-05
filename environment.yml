@@ -1,4 +1,4 @@
-prefix: /afs/cern.ch/work/r/rradev/public/envs/generator_translation
+name: generator_translation_disk
 channels:
   - pytorch
   - conda-forge
@@ -11,4 +11,5 @@ dependencies:
   - uproot
   - awkward
   - h5py
-
+  - matplotlib
+  - jupyter

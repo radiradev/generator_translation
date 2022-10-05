@@ -157,16 +157,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser('Convert ROOT datasets')
     parser.add_argument('-i', '--inputdir', default='/eos/home-c/cristova/DUNE/AlternateGenerators/', help='Directory of ROOT input Files.')
-    parser.add_argument('-o', '--outputdir', default='awkward_data', help='Output directory.')
-    parser.add_argument('--train-test-split', default=0.9, help='Training / testing split fraction.')
+    parser.add_argument('-o', '--outputdir', default='/eos/user/r/rradev/particle_cloud/', help='Output directory.')
+    parser.add_argument('--train-test-split', default=0.8, help='Training / testing split fraction.')
     args = parser.parse_args()
 
     import glob
-    sources = natural_sort(glob.glob(os.path.join(args.inputdir, 'flat_argon_12_GENIEv3_G18_10b_00_000_1M_048_NUISFLAT.root')))
+    sources = natural_sort(glob.glob(os.path.join(args.inputdir, 'flat_argon_12_GENIEv3_G18_10b_00_000_1M_*_NUISFLAT.root')))
     print(sources)
     n_train = int(args.train_test_split * len(sources))
     train_sources = sources[:n_train]
     test_sources = sources[n_train:]
 
-    convert(train_sources, destdir=args.outputdir, basename='train_file_GENIEv3')
-    convert(test_sources, destdir=args.outputdir, basename='test_file_GENIEv3')
+    convert(train_sources, destdir=args.outputdir, basename='train_file_flat_argon_12_GENIEv3_G18_10b')
+    convert(test_sources, destdir=args.outputdir, basename='test_file_flat_argon_12_GENIEv3_G18_10b')

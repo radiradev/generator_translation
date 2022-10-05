@@ -1,10 +1,10 @@
-from src.root_dataloader import NumPyDataset, ParticleCloud
+from src.root_dataloader import ROOTCLoud, ParticleCloud
 from models.model import LightningModel
-from torch.utils.data import DataLoader, random_split
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from torch.utils.data import DataLoader
+from pytorch_lightning import Trainer, LightningDataModule
+from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 import argparse
-
+from rich import print
 # Parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--batch-size", type=int, default=512)
@@ -12,52 +12,77 @@ parser.add_argument("--n-epochs", type=int, default=2000)
 parser.add_argument("--n-workers", type=int, default=2)
 parser.add_argument("--root_dir",
                     type=str,
-                    default='/data/rradev/generator_reweight/awkward_data/')
-parser.add_argument('--lr', type=int, default=1e-4)
-parser.add_argument('--generator_a', type=str, default='GENIEv2')
-parser.add_argument('--generator_b', type=str, default='GENIEv3')
+                    default='/eos/home-c/cristova/DUNE/AlternateGenerators/')
+parser.add_argument('--generator_a', type=str, default='flat_argon_12_GENIEv2')
+parser.add_argument('--generator_b', type=str, default='flat_argon_12_GENIEv3_G18_10b')
 parser.add_argument('--reload_dataloader_every_n_epochs', type=int, default=1)
 args = parser.parse_args()
 
-# Load Data
-dataset = ParticleCloud(args.root_dir, generator_b=args.generator_b, shuffle_data=True)
 
-# Split into val and train
-val_dataset_len = int(len(dataset) * 0.2)
-train_dataset_len = len(dataset) - val_dataset_len
-train_dataset, val_dataset = random_split(
-    dataset, lengths=[train_dataset_len, val_dataset_len])
+class DataModule(LightningDataModule):
+    def __init__(self):
+        super().__init__()
 
-train_loader = DataLoader(train_dataset,
-                          batch_size=args.batch_size,
-                          num_workers=args.n_workers,
-                          shuffle=True)
-val_loader = DataLoader(val_dataset,
-                        batch_size=args.batch_size,
-                        num_workers=args.n_workers,
-                        shuffle=False)
+    def setup(self, stage: str):
+        """
+        Load the val dataset once but we load the train dataset at each epoch
+        to go through all train files.
+        """
+        self.val_dataset = ROOTCLoud(
+            data_dir = args.root_dir, 
+            generator_a=args.generator_a, 
+            generator_b=args.generator_b, 
+            shuffle_data=False, 
+            validation=True)
 
+    def train_dataloader(self):
+        train_dataset = ROOTCLoud(
+            data_dir = args.root_dir, 
+            generator_a=args.generator_a, 
+            generator_b=args.generator_b, 
+            shuffle_data=True, 
+            validation=False)
+        return DataLoader(
+            train_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.n_workers,
+            shuffle=True)
+
+    def val_dataloader(self):
+        return DataLoader(
+            self.val_dataset, 
+            batch_size=args.batch_size,
+            num_workers=args.n_workers,
+            shuffle=False)
+
+
+data = DataModule()
 # Init our model
-model = LightningModel(hparams=args).float()
+model = LightningModel().float()
+
+
 
 # Create a callback
 checkpoint_callback = ModelCheckpoint(save_top_k=10,
                                       verbose=True,
                                       monitor='validation_f1_score',
                                       mode='max')
+progress_bar = TQDMProgressBar(refresh_rate=250)
 
 # Initialize a trainer
 trainer = Trainer(
     default_root_dir=f'lightning_logs/{args.generator_a} and {args.generator_b}',
-    callbacks=checkpoint_callback,
-    gpus=1,
+    callbacks=[checkpoint_callback, progress_bar],
+    accelerator='gpu',
+    devices=1,
     max_epochs=args.n_epochs,
-    progress_bar_refresh_rate=100,
-    log_every_n_steps=250,
-    # reload_dataloaders_every_n_epochs=args.reload_dataloader_every_n_epochs,
+    log_every_n_steps=1000,
+    reload_dataloaders_every_n_epochs=args.reload_dataloader_every_n_epochs,
+    check_val_every_n_epoch=10,
+    fast_dev_run=False
     # max_steps = 100000,
     # default_root_dir=args.root_dir,
 )
 
-# Train the model ⚡
-trainer.fit(model, train_loader, val_loader)
+#  Train the model ⚡
+trainer.fit(model, data)

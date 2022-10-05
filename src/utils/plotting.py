@@ -77,6 +77,10 @@ def probability_plots(probas_a, probas_b, generator_a=None, generator_b=None):
     plt.suptitle('Probability Output')
 
 
+def kl_divergence(p, q):
+    return np.sum(np.where(p != 0.0, p * np.log(p / q), 0.0))
+
+
 def plot_distribution(nominal,
                       target,
                       weights,
@@ -87,7 +91,8 @@ def plot_distribution(nominal,
                       range=None,
                       errorbars=False,
                       density=True,
-                      ratio_limits=None):
+                      ratio_limits=None,
+                      kl_div=True):
     if range is None:
         min_val = 0
         max_val = np.min([np.max(nominal), np.max(target)])
@@ -143,6 +148,25 @@ def plot_distribution(nominal,
                label=label_reweighted,
                ratio_limits=ratio_limits)
 
+    # Add KL vals to ratio plots
+    if kl_div:
+        kl_nominal = kl_divergence(counts_ref, counts_nominal)
+        kl_reweighted = kl_divergence(counts_ref, counts_reweighted)
+        
+        # Build a rectangle in axes coords
+        left, width = .25, .5
+        bottom, height = .25, .5
+        right = left + width
+        top = bottom + height
+        axs[1].text(
+            right, 
+            top + .15, 
+            f'KL Nominal: {kl_nominal:.2f}\n KL Reweighted: {kl_reweighted:.2f}',
+            horizontalalignment='right',
+            verticalalignment='top',
+            size='xx-small',
+            transform=axs[1].transAxes)
+
 
 def ratio_plot(bins_ref,
                counts_ref,
@@ -158,11 +182,10 @@ def ratio_plot(bins_ref,
     x_values, y_values, y_errors = ratios(bins_ref, counts_ref, counts)
     axs[1].plot(x_values, np.ones_like(counts_ref), '--')
     if errorbars:
-        axs[1].fill_between(
-            x_values, 
-            y_values - y_errors,
-            y_values + y_errors, 
-            alpha=0.5)
+        axs[1].fill_between(x_values,
+                            y_values - y_errors,
+                            y_values + y_errors,
+                            alpha=0.5)
 
     axs[1].plot(x_values, y_values, 'o', color=color, label=label)
     axs[1].set_ylim(ratio_limit_low, ratio_limit_high)

@@ -7,7 +7,7 @@ import os
 from glob import glob
 from torch.utils.data import Dataset
 # from src.utils.funcs import get_constants
-
+import vector
 
 def pad_array(a, maxlen, value=0., dtype='float32', axis=1):
     x = ak.pad_none(a, maxlen, axis=axis, clip=True)
@@ -90,7 +90,8 @@ class ParticleCloud(Dataset):
         generator_a='GENIEv2',
         generator_b='GENIEv3',
         max_len=30, 
-        shuffle_data = True):
+        shuffle_data = True,
+        validation=False):
         super().__init__()
         self.data_dir = data_dir
         self.generator_a = generator_a
@@ -98,12 +99,19 @@ class ParticleCloud(Dataset):
         self.max_len = max_len
         self.n_features = 4
         self.shuffle_data = shuffle_data
+        self.validation = validation
         self.data, self.labels = self.load_data()
+        
     
 
     def load_generator(self, generator_name):
-        path = os.path.join(self.data_dir, f'*{generator_name}*')
-        directory_name = glob(path)
+        if self.validation:
+            filename = f'*test*{generator_name}*'
+        else: 
+            filename = f'*train*{generator_name}*'
+        path = os.path.join(self.data_dir, filename)
+        directory_name = random.choice(glob(path))
+        print(directory_name)
         data = ak.from_parquet(directory_name)
         p4 = ak.zip({
             'px': data['part_px'],
@@ -149,6 +157,51 @@ class ParticleCloud(Dataset):
         else:
             labels = np.ones(len(data))
         return labels
+
+
+class ROOTCLoud(ParticleCloud):
+    def __init__(self, validation_variables={}, *args, **kwargs):
+        self.validation_variables = validation_variables
+        super().__init__(*args, **kwargs)
+        
+    def load_generator(self, generator_name):
+        paths = self.data_dir + f'*{generator_name}*'
+        if self.validation:
+            # We use this variables to compare KL on reweighted distributions
+            filename = random.choice(glob(paths)[-10:])
+        else: 
+            filename = random.choice(glob(paths)[:-10])
+        
+        print(f'Loaded Filename {filename}')
+        with uproot.open(filename) as file:
+            tree = file['FlatTree_VARS']
+            px = tree['px']
+            py = tree['py']
+            pz = tree['pz']
+            energy = tree['E']
+            particle_id = tree['pdg'].array()
+            
+            if self.validation:
+                w = tree['W'].array(library='np')
+                x = tree['x'].array(library='np')
+                y = tree['y'].array(library='np')
+                self.validation_variables[generator_name] = [w, x, y]
+                
+            
+            p4 = vector.zip({
+                'px': px.array(),
+                'py': py.array(),
+                'pz': pz.array(), 
+                'energy': energy.array()
+            })
+
+        
+        X = pad_array(p4, self.max_len, axis=1) 
+        X = rec2array(X).swapaxes(1, 2)
+
+        labels = self.create_labels(X, generator_name)
+        return X, labels
+
 
 class ROOTDataset(Dataset):
     """
@@ -377,4 +430,3 @@ if __name__ == '__main__':
     ds = ParticleCloud('/data/rradev/generator_reweight/awkward_data')
     data, label = ds.load_data()
     print(data.shape)
-    1/0

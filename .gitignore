@@ -6,6 +6,10 @@ lightning_logs/
 *.keytab
 *.pyc
 *.
+*.parquet
+awkward_data/
 models/__pycache__/
 reweighted_samples/
 boost_hepml/
+particle_transformer/
+saved_plots/

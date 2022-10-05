@@ -6,6 +6,7 @@ import uproot
 import vector
 import torch.nn.functional as F
 from tqdm import tqdm
+import glob
 
 from sklearn.metrics import classification_report
 from models.model import LightningModel
@@ -23,9 +24,16 @@ parser.add_argument(
 parser.add_argument(
     "--checkpoint_path",
     type=str,
-    default="/data/rradev/generator_reweight/lightning_logs/GENIEv2 and GENIEv3/lightning_logs/version_16/checkpoints/epoch=327-step=1025000.ckpt",
+    default=None,
 )
 args = parser.parse_args()
+
+
+def get_last_run(generator_a, generator_b):
+    return glob.glob(f'lightning_logs/{generator_a} and {generator_b}/lightning_logs/*')[-1]
+
+def get_last_saved_checkpoint(last_run):
+    return glob.glob(f'{last_run}/checkpoints/*')[-1]
 
 def make_plots(nominal, other, predicted_weights, vars_meta, figsize=None):
     if figsize is not None:
@@ -79,16 +87,28 @@ def calculate_weights(probas, low):
 
 # Load model with weights (should be automatic ie dont hardspecify the argument)
 print("Loading model from checkpoint")
-model = LightningModel(hparams=args).load_from_checkpoint(args.checkpoint_path)
+
+generator_a = 'flat_argon_12_GENIEv2'
+generator_b = 'flat_argon_12_GENIEv3_G18_10b'
+
+if args.checkpoint_path is None:
+    last_run = get_last_run(generator_a, generator_b)
+    args.checkpoint_path = get_last_saved_checkpoint(last_run)
+    print(f'Reweighting using {args.checkpoint_path}')
+
+model = LightningModel()
+checkpoint = torch.load(args.checkpoint_path)
+model.load_state_dict(checkpoint['state_dict'])
 model.eval()
 
-v2_filename = args.root_dir + 'flat_argon_12_GENIEv2_1M_005_NUISFLAT.root'
-v3_filename = args.root_dir + 'flat_argon_12_GENIEv3_G18_10b_00_000_1M_007_NUISFLAT.root'
+
+v2_filename = args.root_dir + f'{generator_a}_1M_049_NUISFLAT.root'
+v3_filename = args.root_dir + f'{generator_b}_00_000_1M_049_NUISFLAT.root'
 
 p4_nominal = get_p4(v2_filename)
 p4_target = get_p4(v3_filename)
 
-def predict_weights(p4):
+def predict_weights(p4, low):
     batch_size = 1000
     n_iterations = int(len(p4)/batch_size)
     weights_list = []
@@ -103,7 +123,7 @@ def predict_weights(p4):
             y_hat = model(p4[idx_low:idx_high])
             # Get weights
             probas = F.softmax(y_hat)        
-            weights = calculate_weights(probas, low=0.0001)
+            weights = calculate_weights(probas, low=low)
             weights_list.append(weights)
             probas_list.append(probas)
         weights = np.hstack(weights_list)
@@ -111,24 +131,26 @@ def predict_weights(p4):
         print(probas.shape, weights.shape)
     return weights, probas
 
-weights, probas_nominal = predict_weights(p4_nominal)
-_, probas_target = predict_weights(p4_target)
+weights, probas_nominal = predict_weights(p4_nominal, low=0.001)
+_, probas_target = predict_weights(p4_target, low=0.001)
+
+
+nominal, nominal_weights = rootfile_to_array(v2_filename)
+target, target_weights = rootfile_to_array(v3_filename)
 
 plt.hist(weights, bins=100)
 plt.yscale('log')
 plt.savefig(f"saved_plots/hist.png")
 
-plt.rcParams['figure.figsize'] = (20, 20)
-probability_plots(probas_nominal[:, 1], probas_target[:, 1])
-plt.savefig('saved_plots/probability.png')
-
-nominal, nominal_weights = rootfile_to_array(v2_filename)
-target, target_weights = rootfile_to_array(v3_filename)
-
 figsize = (12, 10)
 many_bins = 100
 vars_meta = get_vars_meta(many_bins)
 make_plots(nominal, target, weights, vars_meta, figsize)
+
+plt.rcParams['figure.figsize'] = (20, 20)
+probability_plots(probas_nominal[:, 1], probas_target[:, 1])
+plt.savefig('saved_plots/probability.png')
+
 
 # GENIEv2 label - 0 
 label = np.vstack([np.zeros_like(nominal_weights), np.ones_like(target_weights)])

@@ -1,6 +1,7 @@
 import numpy as np 
 import awkward as ak
 import uproot
+import torch
 
 
 def rootfile_to_array(filename):
@@ -177,6 +178,28 @@ def calculate_weights(logits, weight_cap=None, nominal_is_zero=True):
     if weight_cap is not None:
         weights = np.clip(weights, 0, weight_cap)
     return weights, probas
+
+def compute_histogram(x, bins=100, bin_range=(0,50), density=True, weights=None):
+    if weights is None:
+        weights = torch.ones_like(x)
+    return torch.histogram(x, bins=bins, range=bin_range, density=density, weight=weights)
+    
+def predict_histogram_weights(nominal, target):
+    """
+    Args:
+        nominal (torch.Tensor): A tensor of nominal events 
+        target (torch.Tensor): A tensor of target events (We are trying to reweight: nominal -> target)
+        
+    Returns:
+        weights (torch.Tensor): A tensor containing weights for each event in the nominal tensor
+    """
+    nominal_counts, nominal_edges = compute_histogram(nominal)
+    target_counts, _ = compute_histogram(target)
+    weights = torch.ones_like(target)
+    ratio = target_counts/nominal_counts
+    for idx in range(len(nominal_counts)):
+        weights = torch.where(torch.logical_and(nominal > nominal_edges[idx], nominal < nominal_edges[idx + 1]), ratio[idx], weights)
+    return weights
 
 
 def detach_tensor(tensor):
