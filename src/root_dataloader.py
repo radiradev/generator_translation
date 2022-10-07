@@ -167,7 +167,6 @@ class ROOTCLoud(ParticleCloud):
     def load_generator(self, generator_name):
         paths = self.data_dir + f'*{generator_name}*'
         if self.validation:
-            # We use this variables to compare KL on reweighted distributions
             filename = random.choice(glob(paths)[-10:])
         else: 
             filename = random.choice(glob(paths)[:-10])

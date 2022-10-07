@@ -1,7 +1,5 @@
-from ast import Pass
 import torch
 from torch import nn
-from tab_transformer_pytorch import TabTransformer
 import math
 
 def to_pt2(x, eps=1e-8):

@@ -1,4 +1,4 @@
-from src.root_dataloader import ROOTCLoud, ParticleCloud
+from src.root_dataloader import ROOTCLoud
 from models.model import LightningModel
 from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer, LightningDataModule
@@ -12,7 +12,7 @@ parser.add_argument("--n-epochs", type=int, default=2000)
 parser.add_argument("--n-workers", type=int, default=2)
 parser.add_argument("--root_dir",
                     type=str,
-                    default='/eos/home-c/cristova/DUNE/AlternateGenerators/')
+                    default='/eos/home-c/cristova/DUNE/AlternateGenerators/') #/eos/user/r/rradev/particle_cloud/
 parser.add_argument('--generator_a', type=str, default='flat_argon_12_GENIEv2')
 parser.add_argument('--generator_b', type=str, default='flat_argon_12_GENIEv3_G18_10b')
 parser.add_argument('--reload_dataloader_every_n_epochs', type=int, default=1)
@@ -79,7 +79,9 @@ trainer = Trainer(
     log_every_n_steps=1000,
     reload_dataloaders_every_n_epochs=args.reload_dataloader_every_n_epochs,
     check_val_every_n_epoch=10,
-    fast_dev_run=False
+    fast_dev_run=False,
+    num_sanity_val_steps=-1 # run a full validation epoch before starting training
+    
     # max_steps = 100000,
     # default_root_dir=args.root_dir,
 )

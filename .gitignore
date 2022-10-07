@@ -6,6 +6,7 @@ lightning_logs/
 *.keytab
 *.pyc
 *.
+*.ckpt
 *.parquet
 awkward_data/
 models/__pycache__/

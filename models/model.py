@@ -1,12 +1,10 @@
 import pytorch_lightning as pl
 import torch.nn.functional as F
 import torch
-import torchmetrics
 from torch.optim import Adam
-from models.modules import CrisModel, ParticleFlowNetwork
+from models.modules import ParticleFlowNetwork
 from torchmetrics.functional import accuracy, f1_score
 from src.utils.funcs import compute_histogram
-from src.utils.plotting import kl_divergence
 
 class LightningModel(pl.LightningModule):
 
@@ -16,7 +14,7 @@ class LightningModel(pl.LightningModule):
         # self.lr = hparams.lr
         self.learning_rate = learning_rate
         # self.save_hyperparameters(learning_rate)
-        self.net = ParticleFlowNetwork(input_dims=4, num_classes=2)
+        self.net = ParticleFlowNetwork(input_dims=4, num_classes=2, transform_to_pt=True)
         self.loss = torch.nn.CrossEntropyLoss(label_smoothing=0.05)
 
     def kl_divergence(self, p, q, reduction='sum'):
@@ -57,7 +55,7 @@ class LightningModel(pl.LightningModule):
         self.log('positive_examples', n_positive_examples)
         return loss
     
-    def compute_kls(self, dataset, dist_names):
+    def compute_kls(self, dataset, dist_names, weights):
         """Computes KL divergence on a list of histograms
         Only works for unweighted datasets
 
@@ -80,25 +78,37 @@ class LightningModel(pl.LightningModule):
         for x, y, dist_name in zip(val_a, val_b, dist_names):
             if dist_name == 'W':
                 # can normalize the distribution instead
-                bin_range = (0, 10)
+                bin_range = (0, 5)
             else:
                 bin_range = (0, 1)
-            hist_a, _ = compute_histogram(torch.tensor(x), bin_range=bin_range)
-            hist_b, _ = compute_histogram(torch.tensor(y), bin_range=bin_range)
-            kl_div[dist_name] = self.kl_divergence(hist_a, hist_b) 
+            hist_a, _ = compute_histogram(torch.tensor(x), bin_range=bin_range, density=True, weights=weights)
+            hist_b, _ = compute_histogram(torch.tensor(y), bin_range=bin_range, density=True)
+            kl_div[dist_name] = self.kl_divergence(hist_b, hist_a) 
 
         return kl_div 
+    
+    def calculate_weights(self, probas, low):
+        weights = torch.clamp(probas[:, 1], low, 1 - low)
+        weights = weights / (1. - weights)
+        return weights
+    
     def validation_epoch_end(self, val_step_outputs):
         # Log KL Divergence
+        weights = torch.cat([row[1] for row in val_step_outputs], dim=0)
+
+        # the first half of the weights are for the first generator
+        weights_a = weights[:int(len(weights)/2)] 
         val_dataloader = self.trainer.val_dataloaders[0]
-        kl_div = self.compute_kls(val_dataloader.dataset, dist_names=['w', 'x', 'y'])
+        kl_div = self.compute_kls(val_dataloader.dataset, dist_names=['w', 'x', 'y'], weights=weights_a)
         self.log_dict(kl_div, prog_bar=True)
         
     def validation_step(self, batch, batch_idx):
-        
+        y_hat = self.forward(batch['features'])
+        probas = F.softmax(y_hat) 
+        weights = self.calculate_weights(probas, 0.001)
         # Compute common step
         loss, labels = self._shared_step(batch, mode='validation')
-        return loss
+        return loss, weights
 
     def test_step(self, batch, batch_idx):
         loss, labels = self._shared_step(batch, mode='test')

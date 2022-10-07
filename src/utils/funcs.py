@@ -182,7 +182,7 @@ def calculate_weights(logits, weight_cap=None, nominal_is_zero=True):
 def compute_histogram(x, bins=100, bin_range=(0,50), density=True, weights=None):
     if weights is None:
         weights = torch.ones_like(x)
-    return torch.histogram(x, bins=bins, range=bin_range, density=density, weight=weights)
+    return torch.histogram(x, bins=bins, range=bin_range, density=density, weight=weights.cpu())
     
 def predict_histogram_weights(nominal, target):
     """
