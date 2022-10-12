@@ -17,15 +17,28 @@ def to_phi(px, py, eps=1e-8):
 
 def to_pabs_phi_theta(x, return_pid=False, eps=1e-8,):
     # x: (N, 4, ...), dim1 : (px, py, pz, E)
-    px, py, pz, energy = x.split((1, 1, 1, 1), dim=1)
+    px, py, pz, energy, pid = x.split((1, 1, 1, 1, 1), dim=1)
     p_absolute = torch.log(torch.sqrt(to_pt2(x))).clamp(min=1e-20)
     theta = torch.arctan2(px, pz)/(math.pi)
     phi = to_phi(px, py)/(math.pi)
-    pid = 0
     if not return_pid:
        return torch.cat((p_absolute, theta, phi, energy/torch.tensor(50.0)), dim=1)
     else:
        return torch.cat((p_absolute, theta, phi, pid), dim=1)
+
+
+
+class ParticleEmbedding(nn.Module):
+    def __init__(self, num_particle_types, embedding_depth):
+        super().__init__()
+        self.embedding = nn.Embedding(num_particle_types, embedding_depth)
+    
+    def forward(self, x):
+        four_vector, categories = x[:, :-1, :], x[:, -1, :]
+        embeddings = self.embedding(categories.to(torch.long))
+        embeddings = torch.swapaxes(embeddings, 1, 2)
+        return torch.cat((four_vector, embeddings), dim=1).float()
+
 
 
 class ParticleFlowNetwork(nn.Module):
@@ -45,13 +58,23 @@ class ParticleFlowNetwork(nn.Module):
                  use_bn=False,
                  for_inference=False,
                  transform_to_pt=True,
+                 use_embeddings=True,
+                 num_particle_types=21,
                  **kwargs):
         
         super(ParticleFlowNetwork, self).__init__(**kwargs)
         # input bn
         self.input_bn = nn.BatchNorm1d(input_dims) if use_bn else nn.Identity()
+        
+        # Input embedding for particle class
+        embedding_depth = int(num_particle_types / 2)
+        self.embeddings = ParticleEmbedding(num_particle_types, embedding_depth) if use_embeddings else nn.Identity()
+        if use_embeddings:
+            input_dims += embedding_depth - 1 # -1 if it does not use energy
+        
         # per-particle functions
         phi_layers = []
+        
         for i in range(len(Phi_sizes)):
             phi_layers.append(nn.Sequential(
                 nn.Conv1d(input_dims if i == 0 else Phi_sizes[i - 1], Phi_sizes[i], kernel_size=1), # this is a linear layer
@@ -77,8 +100,13 @@ class ParticleFlowNetwork(nn.Module):
         # x: the feature vector initally read from the data structure, in dimension (N, C, P)
         mask = features[:, 3, :] > 0 # Energy component has to be bigger than 0
         if self.transform_to_pt:
-            features = to_pabs_phi_theta(features)
-        x = self.input_bn(features)
+            features = to_pabs_phi_theta(features, return_pid=True)
+        else:
+            momenta, categories = features[:, :3, :], features[:, -1, :]
+            features = torch.cat([momenta, torch.unsqueeze(categories, dim=1)], dim=1).float()
+        
+        x = self.embeddings(features)
+        x = self.input_bn(x)
         x = self.phi(x)
         mask = mask.unsqueeze(dim=1)
         x = x * mask.bool().float()

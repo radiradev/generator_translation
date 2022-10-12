@@ -58,7 +58,7 @@ class DataModule(LightningDataModule):
 
 data = DataModule()
 # Init our model
-model = LightningModel().float()
+model = LightningModel(use_embeddings=True, transform_to_pt=False).float()
 
 
 

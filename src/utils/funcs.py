@@ -4,7 +4,7 @@ import uproot
 import torch
 
 
-def rootfile_to_array(filename):
+def rootfile_to_array(filename, return_weights=False):
         variables_in, variables_out, m = get_constants()
 
         with uproot.open(filename + ":FlatTree_VARS") as tree:
@@ -76,8 +76,10 @@ def rootfile_to_array(filename):
             data = ak.to_numpy(treeArr)
             data = data.view(np.float32).reshape(
                 (len(data), len(variables_out)))
-
-            return data, np.expand_dims(weights, axis=1)
+            if return_weights:
+                data, np.expand_dims(weights, axis=1)
+                
+            return data
 
 def get_vars_meta(manyBins):
     vars_meta = np.array(
@@ -167,6 +169,11 @@ def get_constants():
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
+
+def map_to_integer(values, uniques):
+    """Map values based on its position in uniques."""
+    table = {val: i for i, val in enumerate(uniques)}
+    return np.array([table[v] for v in values])
 
 
 def calculate_weights(logits, weight_cap=None, nominal_is_zero=True):

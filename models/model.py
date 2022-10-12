@@ -8,13 +8,13 @@ from src.utils.funcs import compute_histogram
 
 class LightningModel(pl.LightningModule):
 
-    def __init__(self, learning_rate=None, batch_size=None):
+    def __init__(self, learning_rate=None, batch_size=None, transform_to_pt=True, use_embeddings=True, input_dims=4):
         super().__init__()
         self.batch_size = batch_size
         # self.lr = hparams.lr
         self.learning_rate = learning_rate
         # self.save_hyperparameters(learning_rate)
-        self.net = ParticleFlowNetwork(input_dims=4, num_classes=2, transform_to_pt=True)
+        self.net = ParticleFlowNetwork(input_dims, num_classes=2, transform_to_pt=transform_to_pt, Phi_sizes=(100, 100 , 128), use_embeddings=use_embeddings)
         self.loss = torch.nn.CrossEntropyLoss(label_smoothing=0.05)
 
     def kl_divergence(self, p, q, reduction='sum'):

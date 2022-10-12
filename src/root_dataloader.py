@@ -19,6 +19,26 @@ def rec2array(rec):
     arr = np.dstack([rec[field] for field in fields])
     return arr
 
+def get_pdg_codes():
+    leptons = [11, -11, 13, -13, 15, -15]
+    neutrinos = [15, -15, 12, -12]
+    hadrons = [2212, 2112]
+    pions = [211, -211, 111]
+    kaons = [321, -321, 311, 130, 310]
+    return leptons + neutrinos + hadrons + pions + kaons
+
+@np.vectorize
+def map_array(val, dictionary):
+    return dictionary[val] if val in dictionary else 0 
+
+def to_ids(pdg_array):
+    pdg_codes = get_pdg_codes()
+    to_values = np.arange(1, len(pdg_codes) + 1)
+    dict_map = dict(zip(pdg_codes, to_values))
+    flat_pdg = ak.flatten(pdg_array)
+    ids = map_array(flat_pdg, dict_map)
+    counts = ak.num(pdg_array)
+    return ak.unflatten(ids, counts)
 
 class NumPyDataset(Dataset):
     """
@@ -174,10 +194,10 @@ class ROOTCLoud(ParticleCloud):
         print(f'Loaded Filename {filename}')
         with uproot.open(filename) as file:
             tree = file['FlatTree_VARS']
-            px = tree['px']
-            py = tree['py']
-            pz = tree['pz']
-            energy = tree['E']
+            px = tree['px'].array()
+            py = tree['py'].array()
+            pz = tree['pz'].array()
+            energy = tree['E'].array()
             particle_id = tree['pdg'].array()
             
             if self.validation:
@@ -187,19 +207,19 @@ class ROOTCLoud(ParticleCloud):
                 self.validation_variables[generator_name] = [w, x, y]
                 
             
-            p4 = vector.zip({
-                'px': px.array(),
-                'py': py.array(),
-                'pz': pz.array(), 
-                'energy': energy.array()
+            p4 = ak.zip({
+                'px': px,
+                'py': py,
+                'pz': pz, 
+                'E':  energy,
+                'particle_id': to_ids(particle_id)
             })
-
         
         X = pad_array(p4, self.max_len, axis=1) 
-        X = rec2array(X).swapaxes(1, 2)
-
+        X = rec2array(X)
+        
         labels = self.create_labels(X, generator_name)
-        return X, labels
+        return X.swapaxes(1, 2), labels
 
 
 class ROOTDataset(Dataset):
@@ -426,6 +446,5 @@ class ROOTDataset(Dataset):
             return data, np.expand_dims(weights, axis=1)
 
 if __name__ == '__main__':
-    ds = ParticleCloud('/data/rradev/generator_reweight/awkward_data')
-    data, label = ds.load_data()
-    print(data.shape)
+    ds = ROOTCLoud(data_dir = '/eos/home-c/cristova/DUNE/AlternateGenerators/')
+    print(ds[0])

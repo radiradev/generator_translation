@@ -7,14 +7,34 @@ import vector
 import torch.nn.functional as F
 from tqdm import tqdm
 import glob
-
+import awkward as ak
 from sklearn.metrics import classification_report
 from models.model import LightningModel
 
 from src.root_dataloader import pad_array, rec2array
-from src.utils.funcs import rootfile_to_array, detach_tensor, get_vars_meta
+from src.utils.funcs import rootfile_to_array, detach_tensor, get_vars_meta, map_to_integer
 from src.utils.plotting import plot_distribution, probability_plots
 
+def get_pdg_codes():
+    leptons = [11, -11, 13, -13, 15, -15]
+    neutrinos = [15, -15, 12, -12]
+    hadrons = [2212, 2112]
+    pions = [211, -211, 111]
+    kaons = [321, -321, 311, 130, 310]
+    return leptons + neutrinos + hadrons + pions + kaons
+
+@np.vectorize
+def map_array(val, dictionary):
+    return dictionary[val] if val in dictionary else 0 
+
+def to_ids(pdg_array):
+    pdg_codes = get_pdg_codes()
+    to_values = np.arange(1, len(pdg_codes) + 1)
+    dict_map = dict(zip(pdg_codes, to_values))
+    flat_pdg = ak.flatten(pdg_array)
+    ids = map_array(flat_pdg, dict_map)
+    counts = ak.num(pdg_array)
+    return ak.unflatten(ids, counts)
 
 # Parse arguments
 parser = argparse.ArgumentParser()
@@ -24,7 +44,7 @@ parser.add_argument(
 parser.add_argument(
     "--checkpoint_path",
     type=str,
-    default=None,
+    default='/data/rradev/generator_reweight/lightning_logs/flat_argon_12_GENIEv2 and flat_argon_12_GENIEv3_G18_10b/lightning_logs/version_9/checkpoints/epoch=1999-step=7814000.ckpt',
 )
 args = parser.parse_args()
 
@@ -58,25 +78,31 @@ def make_plots(nominal, other, predicted_weights, vars_meta, figsize=None):
             ratio_limits=(0.8, 1.2),
         )
         plt.suptitle(variable)
-        plt.savefig(f"saved_plots/{variable}.png")
+        if 'is' not in variable:
+            plt.savefig(f"saved_plots/{variable}.png")
+        else:
+            plt.show()
 
 def get_p4(filename, max_len=30):
+    print('Reading variables')
     with uproot.open(filename) as f:
         tree = f['FlatTree_VARS']
         px = tree['px']
         py = tree['py']
         pz = tree['pz']
         energy = tree['E']
+        particle_id = tree['pdg']
 
-        p4 = vector.zip({
+        p4 = ak.zip({
             'px': px.array(),
             'py': py.array(),
             'pz': pz.array(), 
-            'E': energy.array()
+            'E': energy.array(),
+            'particle_id': to_ids(particle_id.array())
         })
 
         X = pad_array(p4, max_len, axis=1) 
-        X = rec2array(X).swapaxes(1, 2)
+        X = rec2array(X).swapaxes(1, 2) 
         return torch.tensor(X)
 
 def calculate_weights(probas, low):
@@ -96,47 +122,51 @@ if args.checkpoint_path is None:
     args.checkpoint_path = get_last_saved_checkpoint(last_run)
     print(f'Reweighting using {args.checkpoint_path}')
 
-model = LightningModel()
+model = LightningModel(transform_to_pt=False, use_embeddings=False, input_dims=4)
 checkpoint = torch.load(args.checkpoint_path)
 model.load_state_dict(checkpoint['state_dict'])
 model.eval()
 
 
-v2_filename = args.root_dir + f'{generator_a}_1M_049_NUISFLAT.root'
-v3_filename = args.root_dir + f'{generator_b}_00_000_1M_049_NUISFLAT.root'
+v2_filename = args.root_dir + f'{generator_a}_1M_04*_NUISFLAT.root'
+v3_filename = args.root_dir + f'{generator_b}*1M_04*_NUISFLAT.root'
 
-p4_nominal = get_p4(v2_filename)
-p4_target = get_p4(v3_filename)
-
-def predict_weights(p4, low):
+def predict_weights(filename, low):
+    filenames = glob.glob(filename)
     batch_size = 1000
-    n_iterations = int(len(p4)/batch_size)
     weights_list = []
     probas_list = []
+    
     with torch.no_grad():
-        for i in tqdm(range(n_iterations)):
-            # Indices to loow through model
-            idx_low = i * batch_size
-            idx_high = idx_low + batch_size
+        for filename in filenames:
+            p4 = get_p4(filename)
+            n_iterations = int(len(p4)/batch_size)
+            for i in tqdm(range(n_iterations)):
+                
+                # Indices to low through model
+                idx_low = i * batch_size
+                idx_high = idx_low + batch_size
 
-            # Get predictions
-            y_hat = model(p4[idx_low:idx_high])
-            # Get weights
-            probas = F.softmax(y_hat)        
-            weights = calculate_weights(probas, low=low)
-            weights_list.append(weights)
-            probas_list.append(probas)
+                # Get predictions
+                y_hat = model(p4[idx_low:idx_high])
+                # Get weights
+                probas = F.softmax(y_hat)        
+                weights = calculate_weights(probas, low=low)
+                weights_list.append(weights)
+                probas_list.append(probas)
+        
+        # After iterating through create weight files
         weights = np.hstack(weights_list)
         probas = np.vstack(probas_list)
         print(probas.shape, weights.shape)
     return weights, probas
 
-weights, probas_nominal = predict_weights(p4_nominal, low=0.001)
-_, probas_target = predict_weights(p4_target, low=0.001)
+weights, probas_nominal = predict_weights(v2_filename, low=0.001)
+_, probas_target = predict_weights(v3_filename, low=0.001)
 
 
-nominal, nominal_weights = rootfile_to_array(v2_filename)
-target, target_weights = rootfile_to_array(v3_filename)
+nominal = np.vstack([rootfile_to_array(filename) for filename in glob.glob(v2_filename)])
+target = np.vstack([rootfile_to_array(filename) for filename in glob.glob(v3_filename)])
 
 plt.hist(weights, bins=100)
 plt.yscale('log')
@@ -153,7 +183,7 @@ plt.savefig('saved_plots/probability.png')
 
 
 # GENIEv2 label - 0 
-label = np.vstack([np.zeros_like(nominal_weights), np.ones_like(target_weights)])
+label = np.vstack([np.zeros(shape=weights.shape[0]), np.ones_like(shape=weights.shape[0])])
 probas = np.hstack([probas_target[:, 1], probas_nominal[:, 1]])
 print(probas.shape)
 pred = (probas < 0.5).astype(int)
