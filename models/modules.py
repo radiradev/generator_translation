@@ -101,9 +101,9 @@ class ParticleFlowNetwork(nn.Module):
         mask = features[:, 3, :] > 0 # Energy component has to be bigger than 0
         if self.transform_to_pt:
             features = to_pabs_phi_theta(features, return_pid=True)
-        else:
-            momenta, categories = features[:, :3, :], features[:, -1, :]
-            features = torch.cat([momenta, torch.unsqueeze(categories, dim=1)], dim=1).float()
+        # else:
+        #     momenta, categories = features[:, :3, :], features[:, -1, :]
+        #     features = torch.cat([momenta, torch.unsqueeze(categories, dim=1)], dim=1).float()
         
         x = self.embeddings(features)
         x = self.input_bn(x)

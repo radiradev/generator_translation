@@ -8,7 +8,7 @@ from src.utils.funcs import compute_histogram
 
 class LightningModel(pl.LightningModule):
 
-    def __init__(self, learning_rate=None, batch_size=None, transform_to_pt=True, use_embeddings=True, input_dims=4):
+    def __init__(self, learning_rate=None, batch_size=None, transform_to_pt=True, use_embeddings=True, input_dims=5):
         super().__init__()
         self.batch_size = batch_size
         # self.lr = hparams.lr
