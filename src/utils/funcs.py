@@ -1,7 +1,7 @@
-import numpy as np 
 import awkward as ak
-import uproot
+import numpy as np
 import torch
+import uproot
 
 
 def rootfile_to_array(filename, return_weights=False):
@@ -170,10 +170,7 @@ def get_constants():
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-def map_to_integer(values, uniques):
-    """Map values based on its position in uniques."""
-    table = {val: i for i, val in enumerate(uniques)}
-    return np.array([table[v] for v in values])
+
 
 
 def calculate_weights(logits, weight_cap=None, nominal_is_zero=True):
@@ -220,3 +217,11 @@ def replace_nan_values(array):
     nan_index = np.isnan(X)
     X[nan_index] = np.random.randn(len(X[nan_index]))
     return X
+
+def get_pdg_codes():
+    leptons = [11, -11, 13, -13, 15, -15]
+    neutrinos = [15, -15, 12, -12]
+    hadrons = [2212, 2112]
+    pions = [211, -211, 111]
+    kaons = [321, -321, 311, 130, 310]
+    return leptons + neutrinos + hadrons + pions + kaons

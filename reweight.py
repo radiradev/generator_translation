@@ -1,40 +1,20 @@
 import argparse
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-import uproot 
-import vector
-import torch.nn.functional as F
-from tqdm import tqdm
 import glob
+
 import awkward as ak
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torch.nn.functional as F
+import uproot
+import vector
 from sklearn.metrics import classification_report
+from tqdm import tqdm
+
 from models.model import LightningModel
-
-from src.root_dataloader import pad_array, rec2array
-from src.utils.funcs import rootfile_to_array, detach_tensor, get_vars_meta, map_to_integer
+from src.root_dataloader import pad_array, rec2array, to_ids
+from src.utils.funcs import detach_tensor, get_vars_meta, rootfile_to_array
 from src.utils.plotting import plot_distribution, probability_plots
-
-def get_pdg_codes():
-    leptons = [11, -11, 13, -13, 15, -15]
-    neutrinos = [15, -15, 12, -12]
-    hadrons = [2212, 2112]
-    pions = [211, -211, 111]
-    kaons = [321, -321, 311, 130, 310]
-    return leptons + neutrinos + hadrons + pions + kaons
-
-@np.vectorize
-def map_array(val, dictionary):
-    return dictionary[val] if val in dictionary else 0 
-
-def to_ids(pdg_array):
-    pdg_codes = get_pdg_codes()
-    to_values = np.arange(1, len(pdg_codes) + 1)
-    dict_map = dict(zip(pdg_codes, to_values))
-    flat_pdg = ak.flatten(pdg_array)
-    ids = map_array(flat_pdg, dict_map)
-    counts = ak.num(pdg_array)
-    return ak.unflatten(ids, counts)
 
 # Parse arguments
 parser = argparse.ArgumentParser()
@@ -44,8 +24,7 @@ parser.add_argument(
 parser.add_argument(
     "--checkpoint_path",
     type=str,
-    default='/data/rradev/generator_reweight/lightning_logs/flat_argon_12_GENIEv2 and flat_argon_12_GENIEv3_G18_10b/lightning_logs/version_9/checkpoints/epoch=1999-step=7814000.ckpt',
-)
+    default=None)
 args = parser.parse_args()
 
 
@@ -122,7 +101,7 @@ if args.checkpoint_path is None:
     args.checkpoint_path = get_last_saved_checkpoint(last_run)
     print(f'Reweighting using {args.checkpoint_path}')
 
-model = LightningModel(transform_to_pt=False, use_embeddings=False, input_dims=4)
+model = LightningModel(transform_to_pt=False, use_embeddings=True, input_dims=5)
 checkpoint = torch.load(args.checkpoint_path)
 model.load_state_dict(checkpoint['state_dict'])
 model.eval()

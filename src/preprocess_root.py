@@ -1,13 +1,13 @@
+import argparse
 import os
 from platform import mac_ver
-import numpy as np
-import awkward0
-from uproot3_methods import TLorentzVectorArray
-import awkward as ak
-import argparse
-import uproot
 
+import awkward as ak
+import awkward0
+import numpy as np
+import uproot
 import vector
+from uproot3_methods import TLorentzVectorArray
 
 
 def to_m2(x, eps=1e-8):

@@ -1,0 +1,24 @@
+{
+    "os": "Linux-3.10.0-1160.59.1.el7.x86_64-x86_64-with-glibc2.17",
+    "python": "3.10.4",
+    "heartbeatAt": "2022-10-17T16:18:30.292642",
+    "startedAt": "2022-10-17T16:18:29.090958",
+    "docker": null,
+    "gpu": "Tesla T4",
+    "gpu_count": 1,
+    "cpu_count": 4,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/data/rradev/generator_reweight/train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "https://github.com/radiradev/generator_translation.git",
+        "commit": "99b42d5c17e5b8b00f2d9e6b3e8a453510487d91"
+    },
+    "email": "radi.radev.uk@gmail.com",
+    "root": "/data/rradev/generator_reweight",
+    "host": "epnu-gpu03.cern.ch",
+    "username": "rradev",
+    "executable": "/afs/cern.ch/user/r/rradev/envs/generator_translation/bin/python3"
+}

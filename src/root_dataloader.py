@@ -1,13 +1,16 @@
 import itertools
-import uproot
+import os
+import random
+from glob import glob
+
 import awkward as ak
 import numpy as np
-import random 
-import os
-from glob import glob
-from torch.utils.data import Dataset
-# from src.utils.funcs import get_constants
+import uproot
 import vector
+from torch.utils.data import Dataset
+
+from src.utils.funcs import get_constants, get_pdg_codes
+
 
 def pad_array(a, maxlen, value=0., dtype='float32', axis=1):
     x = ak.pad_none(a, maxlen, axis=axis, clip=True)
@@ -18,14 +21,6 @@ def rec2array(rec):
     fields = rec.dtype.names
     arr = np.dstack([rec[field] for field in fields])
     return arr
-
-def get_pdg_codes():
-    leptons = [11, -11, 13, -13, 15, -15]
-    neutrinos = [15, -15, 12, -12]
-    hadrons = [2212, 2112]
-    pions = [211, -211, 111]
-    kaons = [321, -321, 311, 130, 310]
-    return leptons + neutrinos + hadrons + pions + kaons
 
 @np.vectorize
 def map_array(val, dictionary):

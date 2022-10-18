@@ -1,0 +1,547 @@
+diff --git a/.gitignore b/.gitignore
+index bb7c37a..306f162 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -8,9 +8,10 @@ lightning_logs/
+ *.
+ *.ckpt
+ *.parquet
++lightning-hydra-template/
+ awkward_data/
+ models/__pycache__/
+ reweighted_samples/
+ boost_hepml/
+ particle_transformer/
+-saved_plots/
+\ No newline at end of file
++saved_plots/
+diff --git a/lightning-hydra-template b/lightning-hydra-template
+--- a/lightning-hydra-template
++++ b/lightning-hydra-template
+@@ -1 +1 @@
+-Subproject commit cd640a0153c117934ad95f55da2e1aa2c936d00f
++Subproject commit cd640a0153c117934ad95f55da2e1aa2c936d00f-dirty
+diff --git a/models/epoch=192-step=150926.ckpt b/models/epoch=192-step=150926.ckpt
+deleted file mode 100644
+index 21220d3..0000000
+Binary files a/models/epoch=192-step=150926.ckpt and /dev/null differ
+diff --git a/models/model.py b/models/model.py
+index d3e9187..ccdffbd 100644
+--- a/models/model.py
++++ b/models/model.py
+@@ -1,20 +1,25 @@
++import numpy as np
++import plotly.graph_objects as go
+ import pytorch_lightning as pl
+-import torch.nn.functional as F
+ import torch
++import torch.nn.functional as F
++import wandb
+ from torch.optim import Adam
+-from models.modules import ParticleFlowNetwork
+ from torchmetrics.functional import accuracy, f1_score
+-from src.utils.funcs import compute_histogram
++
++from models.modules import ParticleFlowNetwork
++from src.utils.funcs import compute_histogram, detach_tensor
++
+ 
+ class LightningModel(pl.LightningModule):
+ 
+-    def __init__(self, learning_rate=None, batch_size=None, transform_to_pt=True, use_embeddings=True, input_dims=5):
++    def __init__(self, learning_rate=None, batch_size=None, transform_to_pt=True, use_embeddings=True, input_dims=5, input_bn=False):
+         super().__init__()
+         self.batch_size = batch_size
+         # self.lr = hparams.lr
+         self.learning_rate = learning_rate
+         # self.save_hyperparameters(learning_rate)
+-        self.net = ParticleFlowNetwork(input_dims, num_classes=2, transform_to_pt=transform_to_pt, Phi_sizes=(100, 100 , 128), use_embeddings=use_embeddings)
++        self.net = ParticleFlowNetwork(input_dims, num_classes=2, transform_to_pt=transform_to_pt, Phi_sizes=(100, 100 , 128), use_embeddings=use_embeddings, input_bn=input_bn)
+         self.loss = torch.nn.CrossEntropyLoss(label_smoothing=0.05)
+ 
+     def kl_divergence(self, p, q, reduction='sum'):
+@@ -32,10 +37,6 @@ class LightningModel(pl.LightningModule):
+         features = torch.tensor(batch['features'], dtype=torch.float)
+         predictions = self.forward(features)
+         labels = self.format_labels(batch['label'])
+-        
+-        # We only use input weights for GiBUU
+-        # weights[labels == 1]/torch.sum(weights[labels == 1])
+-        # weights = batch['weights'].reshape_as(labels)
+ 
+         loss = self.loss(predictions, labels.squeeze())
+ 
+@@ -55,6 +56,29 @@ class LightningModel(pl.LightningModule):
+         self.log('positive_examples', n_positive_examples)
+         return loss
+     
++    def get_plotly_equivalent(self, hist):
++        bins, edges = detach_tensor(hist[0]), detach_tensor(hist[1])
++        left,right = edges[:-1],edges[1:]
++        X = np.array([left,right]).T.flatten()
++        Y = np.array([bins,bins]).T.flatten()
++        return X, Y
++
++    def log_plotly(self, hist_a, hist_b, hist_reweighted, dist_name):
++        
++        kl_div = self.kl_divergence(hist_b[0], hist_a[0])
++        kl_div_reweighted = self.kl_divergence(hist_reweighted[0], hist_a[0])
++        x1, x2 = self.get_plotly_equivalent(hist_a), self.get_plotly_equivalent(hist_b)
++        fig = go.Figure(data=[
++            go.Line(name=f'nominal, kl: {kl_div}', x=x1[0], y=x1[1]),
++            go.Line(name=f'reweighted, kl {kl_div_reweighted}', x=x2[0], y=x2[1]),
++        ])
++
++        fig.update_layout(barmode='overlay')
++        fig.update_traces(marker=dict(line=dict(width=0,
++                                                color='red')))
++        logger = self.trainer.logger.experiment
++        logger.log({dist_name : fig})
++    
+     def compute_kls(self, dataset, dist_names, weights):
+         """Computes KL divergence on a list of histograms
+         Only works for unweighted datasets
+@@ -74,18 +98,19 @@ class LightningModel(pl.LightningModule):
+         
+                       
+         # Transform to torch tensor and compute KL divergence:
+-        kl_div = {}
+         for x, y, dist_name in zip(val_a, val_b, dist_names):
+             if dist_name == 'W':
+                 # can normalize the distribution instead
+                 bin_range = (0, 5)
+             else:
+                 bin_range = (0, 1)
+-            hist_a, _ = compute_histogram(torch.tensor(x), bin_range=bin_range, density=True, weights=weights)
+-            hist_b, _ = compute_histogram(torch.tensor(y), bin_range=bin_range, density=True)
+-            kl_div[dist_name] = self.kl_divergence(hist_b, hist_a) 
+-
+-        return kl_div 
++            
++            nominal = compute_histogram(torch.tensor(x), bin_range=bin_range, density=True, weights=weights)
++            reweighted = compute_histogram(torch.tensor(x), bin_range=bin_range, density=True, weights=weights)
++            target = compute_histogram(torch.tensor(y), bin_range=bin_range, density=True)
++            
++            self.log_plotly(nominal, target, reweighted, dist_name)
++        
+     
+     def calculate_weights(self, probas, low):
+         weights = torch.clamp(probas[:, 1], low, 1 - low)
+@@ -99,8 +124,7 @@ class LightningModel(pl.LightningModule):
+         # the first half of the weights are for the first generator
+         weights_a = weights[:int(len(weights)/2)] 
+         val_dataloader = self.trainer.val_dataloaders[0]
+-        kl_div = self.compute_kls(val_dataloader.dataset, dist_names=['w', 'x', 'y'], weights=weights_a)
+-        self.log_dict(kl_div, prog_bar=True)
++        self.compute_kls(val_dataloader.dataset, dist_names=['w', 'x', 'y'], weights=weights_a)
+         
+     def validation_step(self, batch, batch_idx):
+         y_hat = self.forward(batch['features'])
+diff --git a/models/modules.py b/models/modules.py
+index 1a807ec..5bd1cc1 100644
+--- a/models/modules.py
++++ b/models/modules.py
+@@ -1,6 +1,18 @@
++import math
++
++import numpy as np
+ import torch
+ from torch import nn
+-import math
++
++from models.integer_embedding import IntegerEmbedding
++from src.utils.funcs import get_pdg_codes
++
++
++def ids_to_pdg(id):
++    pdg_codes = get_pdg_codes()
++    to_values = np.arange(1, len(pdg_codes) + 1)
++    map_id_to_pdg = dict(zip(pdg_codes, to_values))
++    return map_id_to_pdg[id]
+ 
+ def to_pt2(x, eps=1e-8):
+     pt2 = x[:, :3].square().sum(dim=1, keepdim=True)
+@@ -15,30 +27,16 @@ def to_phi(px, py, eps=1e-8):
+     dot = lepton_px * px + lepton_py * py
+     return torch.atan2(dot, cross)
+ 
+-def to_pabs_phi_theta(x, return_pid=False, eps=1e-8,):
++def to_pabs_phi_theta(x, return_energy=True, eps=1e-8,):
+     # x: (N, 4, ...), dim1 : (px, py, pz, E)
+-    px, py, pz, energy, pid = x.split((1, 1, 1, 1, 1), dim=1)
++    px, py, pz, energy = x.split((1, 1, 1, 1, 1), dim=1)
+     p_absolute = torch.log(torch.sqrt(to_pt2(x))).clamp(min=1e-20)
+     theta = torch.arctan2(px, pz)/(math.pi)
+     phi = to_phi(px, py)/(math.pi)
+-    if not return_pid:
++    if return_energy:
+        return torch.cat((p_absolute, theta, phi, energy/torch.tensor(50.0)), dim=1)
+     else:
+-       return torch.cat((p_absolute, theta, phi, pid), dim=1)
+-
+-
+-
+-class ParticleEmbedding(nn.Module):
+-    def __init__(self, num_particle_types, embedding_depth):
+-        super().__init__()
+-        self.embedding = nn.Embedding(num_particle_types, embedding_depth)
+-    
+-    def forward(self, x):
+-        four_vector, categories = x[:, :-1, :], x[:, -1, :]
+-        embeddings = self.embedding(categories.to(torch.long))
+-        embeddings = torch.swapaxes(embeddings, 1, 2)
+-        return torch.cat((four_vector, embeddings), dim=1).float()
+-
++       return torch.cat((p_absolute, theta, phi), dim=1)
+ 
+ 
+ class ParticleFlowNetwork(nn.Module):
+@@ -60,6 +58,9 @@ class ParticleFlowNetwork(nn.Module):
+                  transform_to_pt=True,
+                  use_embeddings=True,
+                  num_particle_types=21,
++                 max_num_protons = 12, 
++                 max_num_neutrons = 12,
++                 input_bn=False,
+                  **kwargs):
+         
+         super(ParticleFlowNetwork, self).__init__(**kwargs)
+@@ -68,7 +69,9 @@ class ParticleFlowNetwork(nn.Module):
+         
+         # Input embedding for particle class
+         embedding_depth = int(num_particle_types / 2)
+-        self.embeddings = ParticleEmbedding(num_particle_types, embedding_depth) if use_embeddings else nn.Identity()
++        self.type_embeddings = nn.Embedding(num_particle_types, embedding_depth) if use_embeddings else nn.Identity()
++        self.proton_embeddings = IntegerEmbedding(max_num_protons, 5)
++        self.neutron_embeddings = IntegerEmbedding(max_num_neutrons, 5)
+         if use_embeddings:
+             input_dims += embedding_depth - 1 # -1 if it does not use energy
+         
+@@ -85,8 +88,9 @@ class ParticleFlowNetwork(nn.Module):
+         # global functions
+         f_layers = []
+         for i in range(len(F_sizes)):
++            # Adding + 10 for particle embedding depth
+             f_layers.append(nn.Sequential(
+-                nn.Linear(Phi_sizes[-1] if i == 0 else F_sizes[i - 1], F_sizes[i]),
++                nn.Linear(Phi_sizes[-1] + 2 if i == 0 else F_sizes[i - 1], F_sizes[i]),
+                 nn.ReLU())
+             )
+         f_layers.append(nn.Linear(F_sizes[-1], num_classes))
+@@ -96,21 +100,30 @@ class ParticleFlowNetwork(nn.Module):
+         
+         self.transform_to_pt = transform_to_pt 
+ 
+-    def forward(self, features, mask=None):
++    def forward(self, features):
+         # x: the feature vector initally read from the data structure, in dimension (N, C, P)
+-        mask = features[:, 3, :] > 0 # Energy component has to be bigger than 0
++        
++        p4, particle_type = features[:, :-1, :], features[:, -1, :]
++        mask = p4[:, -1, :] > 0 # Energy component has to be bigger than 0
++
++        count_protons = torch.sum(particle_type == ids_to_pdg(2212), axis=1).to(torch.long)
++        count_neutrons =  torch.sum(particle_type == ids_to_pdg(2112), axis=1).to(torch.long)
++        
++        type_embeddings = self.type_embeddings(particle_type.to(torch.long))
++        proton_embeddings = count_protons.clamp(max=10)/10.0
++        neutron_embeddings = count_neutrons.clamp(max=10)/10.0
++        counts = torch.stack((proton_embeddings, neutron_embeddings), dim=1)
++        
+         if self.transform_to_pt:
+-            features = to_pabs_phi_theta(features, return_pid=True)
+-        # else:
+-        #     momenta, categories = features[:, :3, :], features[:, -1, :]
+-        #     features = torch.cat([momenta, torch.unsqueeze(categories, dim=1)], dim=1).float()
++            p4 = to_pabs_phi_theta(p4)
+         
+-        x = self.embeddings(features)
++        x = torch.cat((p4, torch.swapaxes(type_embeddings, 1,2)), dim=1)
+         x = self.input_bn(x)
+-        x = self.phi(x)
++        x = self.phi(x.to(torch.float32))
+         mask = mask.unsqueeze(dim=1)
+         x = x * mask.bool().float()
+         x = x.sum(-1)
+         
++        x = torch.cat((x, counts), dim=1)
+         # can optonally add features here before passing it through the F layer
+         return self.fc(x) 
+diff --git a/reweight.py b/reweight.py
+index e9d2dd0..7c147ca 100644
+--- a/reweight.py
++++ b/reweight.py
+@@ -1,41 +1,21 @@
+ import argparse
+-import torch
+-import numpy as np
+-import matplotlib.pyplot as plt
+-import uproot 
+-import vector
+-import torch.nn.functional as F
+-from tqdm import tqdm
+ import glob
++
+ import awkward as ak
++import matplotlib.pyplot as plt
++import numpy as np
++import torch
++import torch.nn.functional as F
++import uproot
++import vector
+ from sklearn.metrics import classification_report
+-from models.model import LightningModel
++from tqdm import tqdm
+ 
+-from src.root_dataloader import pad_array, rec2array
+-from src.utils.funcs import rootfile_to_array, detach_tensor, get_vars_meta, map_to_integer
++from models.model import LightningModel
++from src.root_dataloader import pad_array, rec2array, to_ids
++from src.utils.funcs import detach_tensor, get_vars_meta, rootfile_to_array
+ from src.utils.plotting import plot_distribution, probability_plots
+ 
+-def get_pdg_codes():
+-    leptons = [11, -11, 13, -13, 15, -15]
+-    neutrinos = [15, -15, 12, -12]
+-    hadrons = [2212, 2112]
+-    pions = [211, -211, 111]
+-    kaons = [321, -321, 311, 130, 310]
+-    return leptons + neutrinos + hadrons + pions + kaons
+-
+-@np.vectorize
+-def map_array(val, dictionary):
+-    return dictionary[val] if val in dictionary else 0 
+-
+-def to_ids(pdg_array):
+-    pdg_codes = get_pdg_codes()
+-    to_values = np.arange(1, len(pdg_codes) + 1)
+-    dict_map = dict(zip(pdg_codes, to_values))
+-    flat_pdg = ak.flatten(pdg_array)
+-    ids = map_array(flat_pdg, dict_map)
+-    counts = ak.num(pdg_array)
+-    return ak.unflatten(ids, counts)
+-
+ # Parse arguments
+ parser = argparse.ArgumentParser()
+ parser.add_argument(
+@@ -44,8 +24,7 @@ parser.add_argument(
+ parser.add_argument(
+     "--checkpoint_path",
+     type=str,
+-    default='/data/rradev/generator_reweight/lightning_logs/flat_argon_12_GENIEv2 and flat_argon_12_GENIEv3_G18_10b/lightning_logs/version_9/checkpoints/epoch=1999-step=7814000.ckpt',
+-)
++    default=None)
+ args = parser.parse_args()
+ 
+ 
+@@ -122,7 +101,7 @@ if args.checkpoint_path is None:
+     args.checkpoint_path = get_last_saved_checkpoint(last_run)
+     print(f'Reweighting using {args.checkpoint_path}')
+ 
+-model = LightningModel(transform_to_pt=False, use_embeddings=False, input_dims=4)
++model = LightningModel(transform_to_pt=False, use_embeddings=True, input_dims=5)
+ checkpoint = torch.load(args.checkpoint_path)
+ model.load_state_dict(checkpoint['state_dict'])
+ model.eval()
+diff --git a/src/preprocess_root.py b/src/preprocess_root.py
+index 7145c0a..3666848 100644
+--- a/src/preprocess_root.py
++++ b/src/preprocess_root.py
+@@ -1,13 +1,13 @@
++import argparse
+ import os
+ from platform import mac_ver
+-import numpy as np
+-import awkward0
+-from uproot3_methods import TLorentzVectorArray
++
+ import awkward as ak
+-import argparse
++import awkward0
++import numpy as np
+ import uproot
+-
+ import vector
++from uproot3_methods import TLorentzVectorArray
+ 
+ 
+ def to_m2(x, eps=1e-8):
+diff --git a/src/root_dataloader.py b/src/root_dataloader.py
+index d717ce2..0ad21a5 100644
+--- a/src/root_dataloader.py
++++ b/src/root_dataloader.py
+@@ -1,13 +1,16 @@
+ import itertools
+-import uproot
+-import awkward as ak
+-import numpy as np
+-import random 
+ import os
++import random
+ from glob import glob
+-from torch.utils.data import Dataset
+-# from src.utils.funcs import get_constants
++
++import awkward as ak
++import numpy as np
++import uproot
+ import vector
++from torch.utils.data import Dataset
++
++from src.utils.funcs import get_constants, get_pdg_codes
++
+ 
+ def pad_array(a, maxlen, value=0., dtype='float32', axis=1):
+     x = ak.pad_none(a, maxlen, axis=axis, clip=True)
+@@ -19,14 +22,6 @@ def rec2array(rec):
+     arr = np.dstack([rec[field] for field in fields])
+     return arr
+ 
+-def get_pdg_codes():
+-    leptons = [11, -11, 13, -13, 15, -15]
+-    neutrinos = [15, -15, 12, -12]
+-    hadrons = [2212, 2112]
+-    pions = [211, -211, 111]
+-    kaons = [321, -321, 311, 130, 310]
+-    return leptons + neutrinos + hadrons + pions + kaons
+-
+ @np.vectorize
+ def map_array(val, dictionary):
+     return dictionary[val] if val in dictionary else 0 
+diff --git a/src/to_numpy.py b/src/to_numpy.py
+index aa2d8f2..39bfe3d 100644
+--- a/src/to_numpy.py
++++ b/src/to_numpy.py
+@@ -1,5 +1,7 @@
+ import glob
++
+ import numpy as np
++
+ from utils.funcs import rootfile_to_array
+ 
+ 
+diff --git a/src/utils/funcs.py b/src/utils/funcs.py
+index e219ef2..9259e6d 100644
+--- a/src/utils/funcs.py
++++ b/src/utils/funcs.py
+@@ -1,7 +1,7 @@
+-import numpy as np 
+ import awkward as ak
+-import uproot
++import numpy as np
+ import torch
++import uproot
+ 
+ 
+ def rootfile_to_array(filename, return_weights=False):
+@@ -170,10 +170,7 @@ def get_constants():
+ def sigmoid(x):
+     return 1 / (1 + np.exp(-x))
+ 
+-def map_to_integer(values, uniques):
+-    """Map values based on its position in uniques."""
+-    table = {val: i for i, val in enumerate(uniques)}
+-    return np.array([table[v] for v in values])
++
+ 
+ 
+ def calculate_weights(logits, weight_cap=None, nominal_is_zero=True):
+@@ -219,4 +216,12 @@ def replace_nan_values(array):
+     X = array.copy()
+     nan_index = np.isnan(X)
+     X[nan_index] = np.random.randn(len(X[nan_index]))
+-    return X
+\ No newline at end of file
++    return X
++
++def get_pdg_codes():
++    leptons = [11, -11, 13, -13, 15, -15]
++    neutrinos = [15, -15, 12, -12]
++    hadrons = [2212, 2112]
++    pions = [211, -211, 111]
++    kaons = [321, -321, 311, 130, 310]
++    return leptons + neutrinos + hadrons + pions + kaons
+diff --git a/src/utils/plotting.py b/src/utils/plotting.py
+index 8266167..888cf8e 100644
+--- a/src/utils/plotting.py
++++ b/src/utils/plotting.py
+@@ -1,6 +1,5 @@
+-import numpy as np
+ import matplotlib.pyplot as plt
+-
++import numpy as np
+ from matplotlib import rc
+ 
+ # Define default plot styles
+diff --git a/test_dataloader.py b/test_dataloader.py
+index a5948f4..25ab56d 100644
+--- a/test_dataloader.py
++++ b/test_dataloader.py
+@@ -1,4 +1,5 @@
+ import logging
++
+ from rich.logging import RichHandler
+ 
+ FORMAT = "%(message)s"
+diff --git a/tests/test_gibuu.py b/tests/test_gibuu.py
+index 6bd46d1..a11b636 100644
+--- a/tests/test_gibuu.py
++++ b/tests/test_gibuu.py
+@@ -1,6 +1,5 @@
+ from src.root_dataloader import ROOTDataset
+ 
+-
+ dataset = ROOTDataset(data_dir='/eos/home-c/cristova/DUNE/AlternateGenerators/', preload_data=True, generator_b='GiBUU')
+ # gibuu_data = dataset.load_generator('GiBUU')
+ 
+diff --git a/train.py b/train.py
+index c3ee829..a917e2b 100644
+--- a/train.py
++++ b/train.py
+@@ -1,10 +1,14 @@
+-from src.root_dataloader import ROOTCLoud
+-from models.model import LightningModel
+-from torch.utils.data import DataLoader
+-from pytorch_lightning import Trainer, LightningDataModule
+-from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
+ import argparse
++
++from pytorch_lightning import LightningDataModule, Trainer
++from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
++from pytorch_lightning.loggers import WandbLogger
+ from rich import print
++from torch.utils.data import DataLoader
++
++from models.model import LightningModel
++from src.root_dataloader import ROOTCLoud
++
+ # Parse arguments
+ parser = argparse.ArgumentParser()
+ parser.add_argument("--batch-size", type=int, default=512)
+@@ -58,7 +62,7 @@ class DataModule(LightningDataModule):
+ 
+ data = DataModule()
+ # Init our model
+-model = LightningModel(use_embeddings=True, transform_to_pt=False).float()
++model = LightningModel(use_embeddings=True, transform_to_pt=False, input_bn=True).float()
+ 
+ 
+ 
+@@ -68,6 +72,7 @@ checkpoint_callback = ModelCheckpoint(save_top_k=10,
+                                       monitor='validation_f1_score',
+                                       mode='max')
+ progress_bar = TQDMProgressBar(refresh_rate=250)
++logger = WandbLogger()
+ 
+ # Initialize a trainer
+ trainer = Trainer(
+@@ -80,7 +85,8 @@ trainer = Trainer(
+     reload_dataloaders_every_n_epochs=args.reload_dataloader_every_n_epochs,
+     check_val_every_n_epoch=10,
+     fast_dev_run=False,
+-    num_sanity_val_steps=-1 # run a full validation epoch before starting training
++    num_sanity_val_steps=-1, # run a full validation epoch before starting training
++    logger=logger
+     
+     # max_steps = 100000,
+     # default_root_dir=args.root_dir,

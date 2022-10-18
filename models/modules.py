@@ -1,6 +1,18 @@
+import math
+
+import numpy as np
 import torch
 from torch import nn
-import math
+
+from models.integer_embedding import IntegerEmbedding
+from src.utils.funcs import get_pdg_codes
+
+
+def ids_to_pdg(id):
+    pdg_codes = get_pdg_codes()
+    to_values = np.arange(1, len(pdg_codes) + 1)
+    map_id_to_pdg = dict(zip(pdg_codes, to_values))
+    return map_id_to_pdg[id]
 
 def to_pt2(x, eps=1e-8):
     pt2 = x[:, :3].square().sum(dim=1, keepdim=True)
@@ -15,30 +27,16 @@ def to_phi(px, py, eps=1e-8):
     dot = lepton_px * px + lepton_py * py
     return torch.atan2(dot, cross)
 
-def to_pabs_phi_theta(x, return_pid=False, eps=1e-8,):
+def to_pabs_phi_theta(x, return_energy=True, eps=1e-8,):
     # x: (N, 4, ...), dim1 : (px, py, pz, E)
-    px, py, pz, energy, pid = x.split((1, 1, 1, 1, 1), dim=1)
+    px, py, pz, energy = x.split((1, 1, 1, 1, 1), dim=1)
     p_absolute = torch.log(torch.sqrt(to_pt2(x))).clamp(min=1e-20)
     theta = torch.arctan2(px, pz)/(math.pi)
     phi = to_phi(px, py)/(math.pi)
-    if not return_pid:
+    if return_energy:
        return torch.cat((p_absolute, theta, phi, energy/torch.tensor(50.0)), dim=1)
     else:
-       return torch.cat((p_absolute, theta, phi, pid), dim=1)
-
-
-
-class ParticleEmbedding(nn.Module):
-    def __init__(self, num_particle_types, embedding_depth):
-        super().__init__()
-        self.embedding = nn.Embedding(num_particle_types, embedding_depth)
-    
-    def forward(self, x):
-        four_vector, categories = x[:, :-1, :], x[:, -1, :]
-        embeddings = self.embedding(categories.to(torch.long))
-        embeddings = torch.swapaxes(embeddings, 1, 2)
-        return torch.cat((four_vector, embeddings), dim=1).float()
-
+       return torch.cat((p_absolute, theta, phi), dim=1)
 
 
 class ParticleFlowNetwork(nn.Module):
@@ -60,6 +58,9 @@ class ParticleFlowNetwork(nn.Module):
                  transform_to_pt=True,
                  use_embeddings=True,
                  num_particle_types=21,
+                 max_num_protons = 12, 
+                 max_num_neutrons = 12,
+                 input_bn=False,
                  **kwargs):
         
         super(ParticleFlowNetwork, self).__init__(**kwargs)
@@ -68,7 +69,9 @@ class ParticleFlowNetwork(nn.Module):
         
         # Input embedding for particle class
         embedding_depth = int(num_particle_types / 2)
-        self.embeddings = ParticleEmbedding(num_particle_types, embedding_depth) if use_embeddings else nn.Identity()
+        self.type_embeddings = nn.Embedding(num_particle_types, embedding_depth) if use_embeddings else nn.Identity()
+        self.proton_embeddings = IntegerEmbedding(max_num_protons, 5)
+        self.neutron_embeddings = IntegerEmbedding(max_num_neutrons, 5)
         if use_embeddings:
             input_dims += embedding_depth - 1 # -1 if it does not use energy
         
@@ -85,8 +88,9 @@ class ParticleFlowNetwork(nn.Module):
         # global functions
         f_layers = []
         for i in range(len(F_sizes)):
+            # Adding + 10 for particle embedding depth
             f_layers.append(nn.Sequential(
-                nn.Linear(Phi_sizes[-1] if i == 0 else F_sizes[i - 1], F_sizes[i]),
+                nn.Linear(Phi_sizes[-1] + 2 if i == 0 else F_sizes[i - 1], F_sizes[i]),
                 nn.ReLU())
             )
         f_layers.append(nn.Linear(F_sizes[-1], num_classes))
@@ -96,21 +100,30 @@ class ParticleFlowNetwork(nn.Module):
         
         self.transform_to_pt = transform_to_pt 
 
-    def forward(self, features, mask=None):
+    def forward(self, features):
         # x: the feature vector initally read from the data structure, in dimension (N, C, P)
-        mask = features[:, 3, :] > 0 # Energy component has to be bigger than 0
-        if self.transform_to_pt:
-            features = to_pabs_phi_theta(features, return_pid=True)
-        # else:
-        #     momenta, categories = features[:, :3, :], features[:, -1, :]
-        #     features = torch.cat([momenta, torch.unsqueeze(categories, dim=1)], dim=1).float()
         
-        x = self.embeddings(features)
+        p4, particle_type = features[:, :-1, :], features[:, -1, :]
+        mask = p4[:, -1, :] > 0 # Energy component has to be bigger than 0
+
+        count_protons = torch.sum(particle_type == ids_to_pdg(2212), axis=1).to(torch.long)
+        count_neutrons =  torch.sum(particle_type == ids_to_pdg(2112), axis=1).to(torch.long)
+        
+        type_embeddings = self.type_embeddings(particle_type.to(torch.long))
+        proton_embeddings = count_protons.clamp(max=10)/10.0
+        neutron_embeddings = count_neutrons.clamp(max=10)/10.0
+        counts = torch.stack((proton_embeddings, neutron_embeddings), dim=1)
+        
+        if self.transform_to_pt:
+            p4 = to_pabs_phi_theta(p4)
+        
+        x = torch.cat((p4, torch.swapaxes(type_embeddings, 1,2)), dim=1)
         x = self.input_bn(x)
-        x = self.phi(x)
+        x = self.phi(x.to(torch.float32))
         mask = mask.unsqueeze(dim=1)
         x = x * mask.bool().float()
         x = x.sum(-1)
         
+        x = torch.cat((x, counts), dim=1)
         # can optonally add features here before passing it through the F layer
         return self.fc(x) 

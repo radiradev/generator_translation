@@ -8,9 +8,12 @@ lightning_logs/
 *.
 *.ckpt
 *.parquet
+lightning-hydra-template/
 awkward_data/
 models/__pycache__/
 reweighted_samples/
 boost_hepml/
 particle_transformer/
 saved_plots/
+wandb/ 
+train_tensorflow/
