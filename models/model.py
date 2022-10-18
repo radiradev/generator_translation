@@ -91,6 +91,8 @@ class LightningModel(pl.LightningModule):
                                                 color='red')))
         logger = self.trainer.logger.experiment
         logger.log({dist_name : fig})
+        logger.log({dist_name : kl_div_reweighted})
+        logger.log({dist_name + ' nominal' : kl_div})
     
     def compute_kls(self, dataset, dist_names, weights):
         """Computes KL divergence on a list of histograms
@@ -118,7 +120,7 @@ class LightningModel(pl.LightningModule):
             else:
                 bin_range = (0, 1)
             
-            nominal = compute_histogram(torch.tensor(x), bin_range=bin_range, density=True, weights=weights)
+            nominal = compute_histogram(torch.tensor(x), bin_range=bin_range, density=True)
             reweighted = compute_histogram(torch.tensor(x), bin_range=bin_range, density=True, weights=weights)
             target = compute_histogram(torch.tensor(y), bin_range=bin_range, density=True)
             
