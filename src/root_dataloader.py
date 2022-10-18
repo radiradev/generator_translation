@@ -106,7 +106,8 @@ class ParticleCloud(Dataset):
         generator_b='GENIEv3',
         max_len=30, 
         shuffle_data = True,
-        validation=False):
+        validation=False,
+        validation_variables={}):
         super().__init__()
         self.data_dir = data_dir
         self.generator_a = generator_a
@@ -115,6 +116,7 @@ class ParticleCloud(Dataset):
         self.n_features = 4
         self.shuffle_data = shuffle_data
         self.validation = validation
+        self.validation_variables = validation_variables
         self.data, self.labels = self.load_data()
         
     
@@ -129,11 +131,18 @@ class ParticleCloud(Dataset):
         print(directory_name)
         data = ak.from_parquet(directory_name)
         p4 = ak.zip({
-            'px': data['part_px'],
-            'py': data['part_py'],
-            'pz': data['part_pz'],
-            'energy': data['part_energy']
+            'px': data['px'],
+            'py': data['py'],
+            'pz': data['pz'],
+            'energy': data['energy'],
+            'pid': data['pid']
         })
+        
+        if self.validation:
+                w = data['W'].to_numpy()
+                x = data['x'].to_numpy()
+                y = data['y'].to_numpy()
+                self.validation_variables[generator_name] = [w, x, y]
 
         X = pad_array(p4, self.max_len, axis=1) 
         X = rec2array(X).swapaxes(1, 2)

@@ -1,0 +1,54 @@
+diff --git a/lightning-hydra-template b/lightning-hydra-template
+--- a/lightning-hydra-template
++++ b/lightning-hydra-template
+@@ -1 +1 @@
+-Subproject commit cd640a0153c117934ad95f55da2e1aa2c936d00f
++Subproject commit cd640a0153c117934ad95f55da2e1aa2c936d00f-dirty
+diff --git a/train.py b/train.py
+index 6e7481a..3a7f5b9 100644
+--- a/train.py
++++ b/train.py
+@@ -80,13 +80,14 @@ trainer = Trainer(
+     callbacks=[checkpoint_callback, progress_bar],
+     accelerator='gpu',
+     devices=1,
+-    max_epochs=args.n_epochs,
++    max_epochs=2, #args.n_epochs,
+     log_every_n_steps=1000,
+     reload_dataloaders_every_n_epochs=args.reload_dataloader_every_n_epochs,
+     check_val_every_n_epoch=20,
+     fast_dev_run=False,
+     num_sanity_val_steps=-1, # run a full validation epoch before starting training
+-    logger=logger
++    logger=logger,
++    profiler='simple'
+     
+     # max_steps = 100000,
+     # default_root_dir=args.root_dir,
+diff --git a/wandb/debug-internal.log b/wandb/debug-internal.log
+index bd740fe..b553529 120000
+--- a/wandb/debug-internal.log
++++ b/wandb/debug-internal.log
+@@ -1 +1 @@
+-run-20221017_194436-1c9w4xpw/logs/debug-internal.log
+\ No newline at end of file
++run-20221018_155623-1ui6el9s/logs/debug-internal.log
+\ No newline at end of file
+diff --git a/wandb/debug.log b/wandb/debug.log
+index 97341fe..5403d7c 120000
+--- a/wandb/debug.log
++++ b/wandb/debug.log
+@@ -1 +1 @@
+-run-20221017_194436-1c9w4xpw/logs/debug.log
+\ No newline at end of file
++run-20221018_155623-1ui6el9s/logs/debug.log
+\ No newline at end of file
+diff --git a/wandb/latest-run b/wandb/latest-run
+index cb98472..51e2481 120000
+--- a/wandb/latest-run
++++ b/wandb/latest-run
+@@ -1 +1 @@
+-run-20221017_194436-1c9w4xpw
+\ No newline at end of file
++run-20221018_155623-1ui6el9s
+\ No newline at end of file

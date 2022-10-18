@@ -1,0 +1,501 @@
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_049_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_042_NUISFLAT.root
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+Sanity Checking: 0it [00:00, ?it/s]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+  | Name | Type                | Params
+---------------------------------------------
+0 | net  | ParticleFlowNetwork | 58.4 K
+1 | loss | CrossEntropyLoss    | 0
+---------------------------------------------
+58.4 K    Trainable params
+0         Non-trainable params
+58.4 K    Total params
+0.233     Total estimated model params size (MB)
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:236: PossibleUserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 4 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+
+Sanity Checking DataLoader 0:   0%|                                                                                                                                                    | 0/3907 [00:00<?, ?it/s]
+/data/rradev/generator_reweight/models/model.py:144: UserWarning: Implicit dimension choice for softmax has been deprecated. Change the call to include dim=X as an argument.
+  probas = F.softmax(y_hat)
+/data/rradev/generator_reweight/models/model.py:37: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  features = torch.tensor(batch['features'], dtype=torch.float)
+/data/rradev/generator_reweight/models/model.py:34: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  return torch.tensor(labels, dtype=torch.long)
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/torchmetrics/utilities/prints.py:36: UserWarning: Torchmetrics v0.9 introduced a new argument class property called `full_state_update` that has
+                not been set for this class (_ResultMetric). The property determines if `update` by
+                default needs access to the full metric state. If this is not the case, significant speedups can be
+                achieved and we recommend setting this to `False`.
+                We provide an checking function
+                `from torchmetrics.utilities import check_forward_no_full_state`
+                that can be used to check if the `full_state_update=True` (old and potential slower behaviour,
+                default for now) or if `full_state_update=False` can be used safely.
+  warnings.warn(*args, **kwargs)
+/data/rradev/generator_reweight/models/model.py:46: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  acc = accuracy(predictions, torch.tensor(labels, dtype=torch.int32))
+/data/rradev/generator_reweight/models/model.py:47: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sanity Checking DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [01:03<00:00, 61.91it/s]
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/plotly/graph_objs/_deprecations.py:378: DeprecationWarning: plotly.graph_objs.Line is deprecated.
+Please replace it with one of the following more specific types
+  - plotly.graph_objs.scatter.Line
+  - plotly.graph_objs.layout.shape.Line
+  - etc.
+  warnings.warn(
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/plotly/graph_objs/_deprecations.py:378: DeprecationWarning:
+plotly.graph_objs.Line is deprecated.
+Please replace it with one of the following more specific types
+  - plotly.graph_objs.scatter.Line
+  - plotly.graph_objs.layout.shape.Line
+
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_010_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_018_NUISFLAT.root
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:236: PossibleUserWarning:
+The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 4 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+Epoch 0:   0%|                                                                                                                                                                         | 0/3907 [00:00<?, ?it/s]
+/data/rradev/generator_reweight/models/model.py:37: UserWarning:
+To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/data/rradev/generator_reweight/models/model.py:34: UserWarning:
+To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/torchmetrics/utilities/prints.py:36: UserWarning:
+Torchmetrics v0.9 introduced a new argument class property called `full_state_update` that has
+                not been set for this class (_ResultMetric). The property determines if `update` by
+                default needs access to the full metric state. If this is not the case, significant speedups can be
+                achieved and we recommend setting this to `False`.
+                We provide an checking function
+                `from torchmetrics.utilities import check_forward_no_full_state`
+                that can be used to check if the `full_state_update=True` (old and potential slower behaviour,
+                default for now) or if `full_state_update=False` can be used safely.
+/data/rradev/generator_reweight/models/model.py:46: UserWarning:
+To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/data/rradev/generator_reweight/models/model.py:47: UserWarning:
+To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/logger_connector/result.py:231: UserWarning:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 0: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:58<00:00, 66.51it/s, loss=0.624, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_037_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_034_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 1: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [01:10<00:00, 55.48it/s, loss=0.594, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_031_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_012_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 2: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 71.37it/s, loss=0.585, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_008_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_006_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 3: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:53<00:00, 72.64it/s, loss=0.572, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_038_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_033_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 4: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 71.08it/s, loss=0.568, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_017_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_008_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 5: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [01:00<00:00, 64.35it/s, loss=0.572, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_032_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_037_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 6: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.11it/s, loss=0.573, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_005_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_022_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 7: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.29it/s, loss=0.568, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_009_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_035_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 8: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.20it/s, loss=0.565, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_039_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_033_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 9: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:53<00:00, 72.37it/s, loss=0.565, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_037_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_033_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 10: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 71.29it/s, loss=0.56, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_001_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_039_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 11: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.13it/s, loss=0.562, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_030_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_038_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 12: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.14it/s, loss=0.572, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_020_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_012_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 13: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 71.98it/s, loss=0.562, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_017_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_014_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 14: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.08it/s, loss=0.559, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_030_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_027_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 15: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.09it/s, loss=0.563, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_009_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_027_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 16: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.11it/s, loss=0.555, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_038_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_036_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 17: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.02it/s, loss=0.548, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_028_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_039_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 18: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:54<00:00, 72.05it/s, loss=0.555, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_035_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_027_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 19:  48%|███████████████████████████████████████████████████████████████▊                                                                     | 3750/7814 [00:52<00:56, 71.96it/s, loss=0.542, v_num=hr5d]
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:236: PossibleUserWarning:
+The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 4 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+/data/rradev/generator_reweight/models/model.py:144: UserWarning:
+Epoch 19:  51%|████████████████████████████████████████████████████████████████████                                                                 | 4000/7814 [00:55<00:53, 71.72it/s, loss=0.542, v_num=hr5d]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Validation DataLoader 0: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [00:36<00:00, 107.50it/s]
+
+Epoch 19, global step 78140: 'validation_f1_score' reached 0.70506 (best 0.70506), saving model to './lightning_logs/12ovhr5d/checkpoints/epoch=19-step=78140.ckpt' as top 10
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_007_NUISFLAT.root
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 20: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3907/3907 [01:01<00:00, 63.37it/s, loss=0.546, v_num=hr5d]Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv2_1M_028_NUISFLAT.root
+Loaded Filename /eos/home-c/cristova/DUNE/AlternateGenerators/flat_argon_12_GENIEv3_G18_10b_00_000_1M_031_NUISFLAT.root
+
+
+
+
+
+Epoch 21:  32%|██████████████████████████████████████████▌                                                                                          | 1250/3907 [00:21<00:45, 58.88it/s, loss=0.549, v_num=hr5d]
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py:653: UserWarning:
+Detected KeyboardInterrupt, attempting graceful shutdown...

@@ -91,7 +91,7 @@ class LightningModel(pl.LightningModule):
                                                 color='red')))
         logger = self.trainer.logger.experiment
         logger.log({dist_name : fig})
-        logger.log({dist_name : kl_div_reweighted})
+        logger.log({dist_name + ' reweighted' : kl_div_reweighted})
         logger.log({dist_name + ' nominal' : kl_div})
     
     def compute_kls(self, dataset, dist_names, weights):

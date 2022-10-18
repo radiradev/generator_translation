@@ -1,0 +1,112 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.13.3
+    code_path: code/train.py
+    framework: lightning
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    m:
+    - 1: trainer/global_step
+      6:
+      - 3
+    - 1: w._type
+      5: 1
+      6:
+      - 1
+    - 1: w.sha256
+      5: 1
+      6:
+      - 1
+    - 1: w.size
+      5: 1
+      6:
+      - 1
+    - 1: w.path
+      5: 1
+      6:
+      - 1
+    - 1: x._type
+      5: 1
+      6:
+      - 1
+    - 1: x.sha256
+      5: 1
+      6:
+      - 1
+    - 1: x.size
+      5: 1
+      6:
+      - 1
+    - 1: x.path
+      5: 1
+      6:
+      - 1
+    - 1: y._type
+      5: 1
+      6:
+      - 1
+    - 1: y.sha256
+      5: 1
+      6:
+      - 1
+    - 1: y.size
+      5: 1
+      6:
+      - 1
+    - 1: y.path
+      5: 1
+      6:
+      - 1
+    - 1: training_loss
+      5: 1
+      6:
+      - 1
+    - 1: training_acc
+      5: 1
+      6:
+      - 1
+    - 1: training_f1_score
+      5: 1
+      6:
+      - 1
+    - 1: positive_examples
+      5: 1
+      6:
+      - 1
+    - 1: epoch
+      5: 1
+      6:
+      - 1
+    - 1: validation_loss
+      5: 1
+      6:
+      - 1
+    - 1: validation_acc
+      5: 1
+      6:
+      - 1
+    - 1: validation_f1_score
+      5: 1
+      6:
+      - 1
+    python_version: 3.10.4
+    start_time: 1666094735.325372
+    t:
+      1:
+      - 1
+      - 9
+      - 55
+      2:
+      - 1
+      - 9
+      - 55
+      3:
+      - 7
+      - 23
+      4: 3.10.4
+      5: 0.13.3
+      8:
+      - 5

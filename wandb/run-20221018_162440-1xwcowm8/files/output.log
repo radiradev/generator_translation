@@ -1,0 +1,8 @@
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+/eos/user/r/rradev/new_parquet/test_file_flat_argon_12_GENIEv2_2.parquet
+/eos/user/r/rradev/new_parquet/test_file_flat_argon_12_GENIEv3_G18_10b_0.parquet
+/afs/cern.ch/user/r/rradev/envs/generator_translation/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py:653: UserWarning: Detected KeyboardInterrupt, attempting graceful shutdown...
+  rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")

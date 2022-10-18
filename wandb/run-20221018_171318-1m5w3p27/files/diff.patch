@@ -1,0 +1,171 @@
+diff --git a/lightning-hydra-template b/lightning-hydra-template
+--- a/lightning-hydra-template
++++ b/lightning-hydra-template
+@@ -1 +1 @@
+-Subproject commit cd640a0153c117934ad95f55da2e1aa2c936d00f
++Subproject commit cd640a0153c117934ad95f55da2e1aa2c936d00f-dirty
+diff --git a/models/model.py b/models/model.py
+index 85e85a0..6c44945 100644
+--- a/models/model.py
++++ b/models/model.py
+@@ -91,7 +91,7 @@ class LightningModel(pl.LightningModule):
+                                                 color='red')))
+         logger = self.trainer.logger.experiment
+         logger.log({dist_name : fig})
+-        logger.log({dist_name : kl_div_reweighted})
++        logger.log({dist_name + ' reweighted' : kl_div_reweighted})
+         logger.log({dist_name + ' nominal' : kl_div})
+     
+     def compute_kls(self, dataset, dist_names, weights):
+diff --git a/src/root_dataloader.py b/src/root_dataloader.py
+index 0ad21a5..1e5c913 100644
+--- a/src/root_dataloader.py
++++ b/src/root_dataloader.py
+@@ -106,7 +106,8 @@ class ParticleCloud(Dataset):
+         generator_b='GENIEv3',
+         max_len=30, 
+         shuffle_data = True,
+-        validation=False):
++        validation=False,
++        validation_variables={}):
+         super().__init__()
+         self.data_dir = data_dir
+         self.generator_a = generator_a
+@@ -115,6 +116,7 @@ class ParticleCloud(Dataset):
+         self.n_features = 4
+         self.shuffle_data = shuffle_data
+         self.validation = validation
++        self.validation_variables = validation_variables
+         self.data, self.labels = self.load_data()
+         
+     
+@@ -129,11 +131,18 @@ class ParticleCloud(Dataset):
+         print(directory_name)
+         data = ak.from_parquet(directory_name)
+         p4 = ak.zip({
+-            'px': data['part_px'],
+-            'py': data['part_py'],
+-            'pz': data['part_pz'],
+-            'energy': data['part_energy']
++            'px': data['px'],
++            'py': data['py'],
++            'pz': data['pz'],
++            'energy': data['energy'],
++            'pid': data['pid']
+         })
++        
++        if self.validation:
++                w = data['W'].to_numpy()
++                x = data['x'].to_numpy()
++                y = data['y'].to_numpy()
++                self.validation_variables[generator_name] = [w, x, y]
+ 
+         X = pad_array(p4, self.max_len, axis=1) 
+         X = rec2array(X).swapaxes(1, 2)
+diff --git a/test_dataloader.py b/test_dataloader.py
+deleted file mode 100644
+index 25ab56d..0000000
+--- a/test_dataloader.py
++++ /dev/null
+@@ -1,16 +0,0 @@
+-import logging
+-
+-from rich.logging import RichHandler
+-
+-FORMAT = "%(message)s"
+-logging.basicConfig(
+-    level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+-)
+-log = logging.getLogger("rich")
+-
+-log.info("Loading package")
+-from src.root_dataloader import ROOTCLoud
+-
+-log.info("Loading data")
+-ds = ROOTCLoud()
+-print(ds[0])
+\ No newline at end of file
+diff --git a/train.py b/train.py
+index 6e7481a..3569da7 100644
+--- a/train.py
++++ b/train.py
+@@ -7,16 +7,16 @@ from rich import print
+ from torch.utils.data import DataLoader
+ 
+ from models.model import LightningModel
+-from src.root_dataloader import ROOTCLoud
++from src.root_dataloader import ParticleCloud, ROOTCLoud
+ 
+ # Parse arguments
+ parser = argparse.ArgumentParser()
+-parser.add_argument("--batch-size", type=int, default=512)
++parser.add_argument("--batch-size", type=int, default=1024)
+ parser.add_argument("--n-epochs", type=int, default=2000)
+ parser.add_argument("--n-workers", type=int, default=2)
+ parser.add_argument("--root_dir",
+                     type=str,
+-                    default='/eos/home-c/cristova/DUNE/AlternateGenerators/') #/eos/user/r/rradev/particle_cloud/
++                    default='/eos/user/r/rradev/new_parquet/') #
+ parser.add_argument('--generator_a', type=str, default='flat_argon_12_GENIEv2')
+ parser.add_argument('--generator_b', type=str, default='flat_argon_12_GENIEv3_G18_10b')
+ parser.add_argument('--reload_dataloader_every_n_epochs', type=int, default=1)
+@@ -32,7 +32,7 @@ class DataModule(LightningDataModule):
+         Load the val dataset once but we load the train dataset at each epoch
+         to go through all train files.
+         """
+-        self.val_dataset = ROOTCLoud(
++        self.val_dataset = ParticleCloud(
+             data_dir = args.root_dir, 
+             generator_a=args.generator_a, 
+             generator_b=args.generator_b, 
+@@ -40,11 +40,11 @@ class DataModule(LightningDataModule):
+             validation=True)
+ 
+     def train_dataloader(self):
+-        train_dataset = ROOTCLoud(
++        train_dataset = ParticleCloud(
+             data_dir = args.root_dir, 
+             generator_a=args.generator_a, 
+             generator_b=args.generator_b, 
+-            shuffle_data=True, 
++            shuffle_data=False, 
+             validation=False)
+         return DataLoader(
+             train_dataset,
+@@ -86,8 +86,7 @@ trainer = Trainer(
+     check_val_every_n_epoch=20,
+     fast_dev_run=False,
+     num_sanity_val_steps=-1, # run a full validation epoch before starting training
+-    logger=logger
+-    
++    logger=logger,
+     # max_steps = 100000,
+     # default_root_dir=args.root_dir,
+ )
+diff --git a/wandb/debug-internal.log b/wandb/debug-internal.log
+index bd740fe..7242a87 120000
+--- a/wandb/debug-internal.log
++++ b/wandb/debug-internal.log
+@@ -1 +1 @@
+-run-20221017_194436-1c9w4xpw/logs/debug-internal.log
+\ No newline at end of file
++run-20221018_171318-1m5w3p27/logs/debug-internal.log
+\ No newline at end of file
+diff --git a/wandb/debug.log b/wandb/debug.log
+index 97341fe..c99cff9 120000
+--- a/wandb/debug.log
++++ b/wandb/debug.log
+@@ -1 +1 @@
+-run-20221017_194436-1c9w4xpw/logs/debug.log
+\ No newline at end of file
++run-20221018_171318-1m5w3p27/logs/debug.log
+\ No newline at end of file
+diff --git a/wandb/latest-run b/wandb/latest-run
+index cb98472..25280e9 120000
+--- a/wandb/latest-run
++++ b/wandb/latest-run
+@@ -1 +1 @@
+-run-20221017_194436-1c9w4xpw
+\ No newline at end of file
++run-20221018_171318-1m5w3p27
+\ No newline at end of file
