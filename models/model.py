@@ -80,7 +80,7 @@ class LightningModel(pl.LightningModule):
                 yanchor="top",
                 y=0.99,
                 xanchor="left",
-                x=0.01)
+                x=0.01),
             margin=go.layout.Margin(
                 l=0,
                 r=0,
