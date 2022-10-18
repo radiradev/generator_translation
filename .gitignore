@@ -17,3 +17,4 @@ particle_transformer/
 saved_plots/
 wandb/ 
 train_tensorflow/
+saved_plots copy/
